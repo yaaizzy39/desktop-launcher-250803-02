@@ -166,9 +166,8 @@ class LauncherApp(QApplication):
             window.hide()
             return
             
-        # グループアイコンの近くに表示
-        icon_pos = group_icon.pos()
-        window.move(icon_pos.x() + 60, icon_pos.y())
+        # グループアイコンの近くに表示（画面境界を考慮）
+        self.position_window_near_icon(window, group_icon)
         window.show()
         window.raise_()
         window.activateWindow()
@@ -185,12 +184,59 @@ class LauncherApp(QApplication):
         window.is_pinned = True
         window.update_title_display()
         
-        # グループアイコンの近くに表示
-        icon_pos = group_icon.pos()
-        window.move(icon_pos.x() + 60, icon_pos.y())
+        # グループアイコンの近くに表示（画面境界を考慮）
+        self.position_window_near_icon(window, group_icon)
         window.show()
         window.raise_()
         window.activateWindow()
+        
+    def position_window_near_icon(self, window, group_icon):
+        """画面境界を考慮してウィンドウをグループアイコンの近くに配置"""
+        # 画面情報を取得
+        screen = self.primaryScreen().availableGeometry()
+        screen_width = screen.width()
+        screen_height = screen.height()
+        screen_x = screen.x()
+        screen_y = screen.y()
+        
+        # グループアイコンの位置とサイズ
+        icon_pos = group_icon.pos()
+        icon_size = group_icon.size()
+        
+        # ウィンドウのサイズ
+        window_width = window.width()
+        window_height = window.height()
+        
+        # デフォルトの配置（右側）
+        default_x = icon_pos.x() + icon_size.width() + 10
+        default_y = icon_pos.y()
+        
+        # 水平位置の調整
+        if default_x + window_width > screen_x + screen_width:
+            # 右側にはみ出る場合は左側に配置
+            x = icon_pos.x() - window_width - 10
+            # 左側にもはみ出る場合は画面内に収まる位置に調整
+            if x < screen_x:
+                x = max(screen_x, icon_pos.x() + icon_size.width() // 2 - window_width // 2)
+        else:
+            x = default_x
+            
+        # 垂直位置の調整
+        if default_y + window_height > screen_y + screen_height:
+            # 下側にはみ出る場合は上側に配置
+            y = icon_pos.y() + icon_size.height() - window_height
+            # 上側にもはみ出る場合は画面内に収まる位置に調整
+            if y < screen_y:
+                y = max(screen_y, icon_pos.y() + icon_size.height() // 2 - window_height // 2)
+        else:
+            y = default_y
+            
+        # 最終的に画面境界内に収める
+        x = max(screen_x, min(x, screen_x + screen_width - window_width))
+        y = max(screen_y, min(y, screen_y + screen_height - window_height))
+        
+        # ウィンドウを配置
+        window.move(x, y)
         
     def save_groups(self):
         """グループデータを保存"""
