@@ -129,6 +129,14 @@ class LauncherApp(QApplication):
         group_icon.items_changed.connect(self.save_groups)
         
         self.group_icons.append(group_icon)
+        
+        # 設定を適用
+        try:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            group_icon.apply_appearance_settings(appearance_settings)
+        except Exception as e:
+            print(f"新しいグループへの設定適用エラー: {e}")
+        
         group_icon.show()
         
         # データを保存
@@ -151,6 +159,14 @@ class LauncherApp(QApplication):
         group_icon.items_changed.connect(self.save_groups)
         
         self.group_icons.append(group_icon)
+        
+        # 設定を適用
+        try:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            group_icon.apply_appearance_settings(appearance_settings)
+        except Exception as e:
+            print(f"グループ復元時の設定適用エラー: {e}")
+        
         group_icon.show()
         
     def show_item_list(self, group_icon):

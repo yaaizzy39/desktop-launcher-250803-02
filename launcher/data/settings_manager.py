@@ -46,10 +46,18 @@ class SettingsManager:
                 with open(self.settings_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     
+                # メタデータ構造から設定データを取得
+                if isinstance(data, dict) and 'settings' in data:
+                    # 新しい形式（メタデータ付き）
+                    settings_data = data['settings']
+                else:
+                    # 旧形式（設定データ直接）
+                    settings_data = data
+                    
                 # デフォルト設定とマージ
                 settings = self.default_settings.copy()
-                if isinstance(data, dict):
-                    for category, values in data.items():
+                if isinstance(settings_data, dict):
+                    for category, values in settings_data.items():
                         if category in settings and isinstance(values, dict):
                             settings[category].update(values)
                             
