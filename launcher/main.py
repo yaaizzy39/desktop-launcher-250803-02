@@ -178,6 +178,9 @@ class LauncherApp(QApplication):
             
         window = self.item_list_windows[group_icon]
         
+        # グループアイコンにリストウィンドウの参照を設定
+        group_icon.list_window = window
+        
         # 既に表示されている場合は隠す（トグル動作）
         if window.isVisible():
             window.hide()
@@ -196,6 +199,9 @@ class LauncherApp(QApplication):
             self.item_list_windows[group_icon] = ItemListWindow(group_icon)
             
         window = self.item_list_windows[group_icon]
+        
+        # グループアイコンにリストウィンドウの参照を設定
+        group_icon.list_window = window
         
         # 固定モードで表示
         window.is_pinned = True

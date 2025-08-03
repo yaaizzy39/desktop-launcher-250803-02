@@ -32,6 +32,7 @@ class GroupIcon(QWidget):
         self.main_app = main_app  # メインアプリケーションへの参照
         self.last_click_time = 0  # ダブルクリック検出用
         self.custom_icon_path = None  # カスタムアイコンのパス
+        self.list_window = None  # 対応するリストウィンドウへの参照
         
         self.setup_ui()
         self.setup_drag_drop()
@@ -223,7 +224,11 @@ class GroupIcon(QWidget):
             if distance >= QApplication.startDragDistance():
                 self.is_dragging = True  # ドラッグ開始をマーク
                 # ウィンドウを移動
-                self.move(self.mapToGlobal(event.position().toPoint() - self.drag_start_position))
+                new_position = self.mapToGlobal(event.position().toPoint() - self.drag_start_position)
+                self.move(new_position)
+                
+                # リストウィンドウが表示されている場合は一緒に移動
+                self.update_list_position()
                 
     def mouseReleaseEvent(self, event):
         """マウスリリースイベント"""
@@ -470,3 +475,13 @@ class GroupIcon(QWidget):
         if self.settings_manager:
             return self.settings_manager.get_appearance_settings()
         return {}
+    
+    def update_list_position(self):
+        """リストウィンドウの位置を更新"""
+        if self.list_window and self.list_window.isVisible():
+            # アイコンの右側にリストを配置
+            icon_pos = self.pos()
+            icon_size = self.size()
+            list_x = icon_pos.x() + icon_size.width() + 10  # アイコンの右側に10px空けて配置
+            list_y = icon_pos.y()
+            self.list_window.move(list_x, list_y)
