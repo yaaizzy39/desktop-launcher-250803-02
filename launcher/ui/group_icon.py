@@ -241,6 +241,17 @@ class GroupIcon(QWidget):
         
         menu.addSeparator()
         
+        # 整列機能
+        align_vertical_action = QAction("縦整列", self)
+        align_vertical_action.triggered.connect(self.align_vertically)
+        menu.addAction(align_vertical_action)
+        
+        align_horizontal_action = QAction("横整列", self)
+        align_horizontal_action.triggered.connect(self.align_horizontally)
+        menu.addAction(align_horizontal_action)
+        
+        menu.addSeparator()
+        
         # アイテムをクリア
         clear_action = QAction("アイテムをクリア", self)
         clear_action.triggered.connect(self.clear_items)
@@ -283,6 +294,28 @@ class GroupIcon(QWidget):
             QMessageBox.warning(
                 self, "エラー", 
                 "設定ウィンドウを表示できません。\nメインアプリケーションとの接続に問題があります。"
+            )
+            
+    def align_vertically(self):
+        """縦整列（X位置を統一）"""
+        if self.main_app:
+            target_x = self.x()
+            self.main_app.align_all_icons_vertically(target_x)
+        else:
+            QMessageBox.warning(
+                self, "エラー", 
+                "整列機能を実行できません。\nメインアプリケーションとの接続に問題があります。"
+            )
+            
+    def align_horizontally(self):
+        """横整列（Y位置を統一）"""
+        if self.main_app:
+            target_y = self.y()
+            self.main_app.align_all_icons_horizontally(target_y)
+        else:
+            QMessageBox.warning(
+                self, "エラー", 
+                "整列機能を実行できません。\nメインアプリケーションとの接続に問題があります。"
             )
             
     def clear_items(self):

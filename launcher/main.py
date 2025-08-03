@@ -331,6 +331,36 @@ class LauncherApp(QApplication):
                 group_icon.apply_appearance_settings(appearance_settings)
         except Exception as e:
             print(f"初期設定適用エラー: {e}")
+            
+    def align_all_icons_vertically(self, target_x):
+        """すべてのアイコンを縦整列（X位置を統一）"""
+        try:
+            for group_icon in self.group_icons:
+                current_y = group_icon.y()
+                group_icon.move(target_x, current_y)
+            
+            # 位置変更を保存
+            self.save_groups()
+            print(f"縦整列完了: X={target_x}")
+            
+        except Exception as e:
+            print(f"縦整列エラー: {e}")
+            QMessageBox.critical(None, "エラー", f"縦整列中にエラーが発生しました:\n{str(e)}")
+            
+    def align_all_icons_horizontally(self, target_y):
+        """すべてのアイコンを横整列（Y位置を統一）"""
+        try:
+            for group_icon in self.group_icons:
+                current_x = group_icon.x()
+                group_icon.move(current_x, target_y)
+            
+            # 位置変更を保存
+            self.save_groups()
+            print(f"横整列完了: Y={target_y}")
+            
+        except Exception as e:
+            print(f"横整列エラー: {e}")
+            QMessageBox.critical(None, "エラー", f"横整列中にエラーが発生しました:\n{str(e)}")
         
     def quit_application(self):
         """アプリケーションを終了"""
