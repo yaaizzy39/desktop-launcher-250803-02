@@ -226,27 +226,14 @@ class IconSelectorDialog(QDialog):
         title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333;")
         layout.addWidget(title_label)
         
-        # タブウィジェット
-        self.tab_widget = QTabWidget()
-        
         # アイコンフォルダのパス
         icons_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
         
-        # カテゴリタブを作成
-        categories = [
-            ("apps", "アプリ"),
-            ("folders", "フォルダ"),
-            ("categories", "カテゴリ"),
-            ("custom", "カスタム")
-        ]
+        # 単一のアイコンタブを作成
+        self.icon_tab = IconCategoryTab(icons_dir, "アイコン")
+        self.icon_tab.icon_selected.connect(self.on_icon_selected)
         
-        for folder_name, display_name in categories:
-            category_path = os.path.join(icons_dir, folder_name)
-            tab = IconCategoryTab(category_path, display_name)
-            tab.icon_selected.connect(self.on_icon_selected)
-            self.tab_widget.addTab(tab, display_name)
-            
-        layout.addWidget(self.tab_widget)
+        layout.addWidget(self.icon_tab)
         
         # プレビューエリア
         preview_layout = QHBoxLayout()
