@@ -194,16 +194,6 @@ class AdvancedTab(QWidget):
         # バックアップ設定
         backup_layout = QFormLayout()
         
-        self.auto_backup = QCheckBox("自動バックアップを有効にする")
-        self.auto_backup.stateChanged.connect(self.settings_changed.emit)
-        backup_layout.addRow(self.auto_backup)
-        
-        self.backup_interval = QSpinBox()
-        self.backup_interval.setRange(1, 24)
-        self.backup_interval.setSuffix(" 時間")
-        self.backup_interval.valueChanged.connect(self.settings_changed.emit)
-        backup_layout.addRow("バックアップ間隔:", self.backup_interval)
-        
         self.max_backups = QSpinBox()
         self.max_backups.setRange(1, 50)
         self.max_backups.valueChanged.connect(self.settings_changed.emit)
@@ -231,50 +221,6 @@ class AdvancedTab(QWidget):
         data_group.setLayout(data_layout)
         layout.addWidget(data_group)
         
-        # パフォーマンス設定
-        perf_group = QGroupBox("パフォーマンス設定")
-        perf_layout = QFormLayout()
-        
-        self.low_memory_mode = QCheckBox("省メモリモード")
-        self.low_memory_mode.stateChanged.connect(self.settings_changed.emit)
-        perf_layout.addRow(self.low_memory_mode)
-        
-        self.cache_icons = QCheckBox("アイコンをキャッシュする")
-        self.cache_icons.stateChanged.connect(self.settings_changed.emit)
-        perf_layout.addRow(self.cache_icons)
-        
-        self.update_check_interval = QSpinBox()
-        self.update_check_interval.setRange(0, 30)
-        self.update_check_interval.setSuffix(" 日")
-        self.update_check_interval.setSpecialValueText("無効")
-        self.update_check_interval.valueChanged.connect(self.settings_changed.emit)
-        perf_layout.addRow("アップデート確認間隔:", self.update_check_interval)
-        
-        perf_group.setLayout(perf_layout)
-        layout.addWidget(perf_group)
-        
-        # ログ設定
-        log_group = QGroupBox("ログ設定")
-        log_layout = QFormLayout()
-        
-        self.enable_logging = QCheckBox("ログを有効にする")
-        self.enable_logging.stateChanged.connect(self.settings_changed.emit)
-        log_layout.addRow(self.enable_logging)
-        
-        self.log_level = QComboBox()
-        self.log_level.addItems(["エラーのみ", "警告以上", "情報以上", "すべて"])
-        self.log_level.currentTextChanged.connect(self.settings_changed.emit)
-        log_layout.addRow("ログレベル:", self.log_level)
-        
-        self.max_log_size = QSpinBox()
-        self.max_log_size.setRange(1, 100)
-        self.max_log_size.setSuffix(" MB")
-        self.max_log_size.valueChanged.connect(self.settings_changed.emit)
-        log_layout.addRow("最大ログサイズ:", self.max_log_size)
-        
-        log_group.setLayout(log_layout)
-        layout.addWidget(log_group)
-        
         layout.addStretch()
         self.setLayout(layout)
         
@@ -282,35 +228,12 @@ class AdvancedTab(QWidget):
         """設定を読み込み"""
         settings = self.settings_manager.get_advanced_settings()
         
-        self.auto_backup.setChecked(settings.get('auto_backup', True))
-        self.backup_interval.setValue(settings.get('backup_interval', 6))
         self.max_backups.setValue(settings.get('max_backups', 10))
-        self.low_memory_mode.setChecked(settings.get('low_memory_mode', False))
-        self.cache_icons.setChecked(settings.get('cache_icons', True))
-        self.update_check_interval.setValue(settings.get('update_check_interval', 7))
-        self.enable_logging.setChecked(settings.get('enable_logging', True))
-        
-        log_levels = ["エラーのみ", "警告以上", "情報以上", "すべて"]
-        log_level = settings.get('log_level', 'info')
-        level_map = {'error': 0, 'warning': 1, 'info': 2, 'debug': 3}
-        self.log_level.setCurrentIndex(level_map.get(log_level, 2))
-        
-        self.max_log_size.setValue(settings.get('max_log_size', 10))
         
     def get_settings(self):
         """現在の設定を取得"""
-        level_map = {0: 'error', 1: 'warning', 2: 'info', 3: 'debug'}
-        
         return {
-            'auto_backup': self.auto_backup.isChecked(),
-            'backup_interval': self.backup_interval.value(),
-            'max_backups': self.max_backups.value(),
-            'low_memory_mode': self.low_memory_mode.isChecked(),
-            'cache_icons': self.cache_icons.isChecked(),
-            'update_check_interval': self.update_check_interval.value(),
-            'enable_logging': self.enable_logging.isChecked(),
-            'log_level': level_map[self.log_level.currentIndex()],
-            'max_log_size': self.max_log_size.value()
+            'max_backups': self.max_backups.value()
         }
         
     def export_settings(self):

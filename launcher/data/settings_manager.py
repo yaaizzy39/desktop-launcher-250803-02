@@ -32,15 +32,7 @@ class SettingsManager:
                 'minimize_to_tray': True
             },
             'advanced': {
-                'auto_backup': True,
-                'backup_interval': 6,
-                'max_backups': 10,
-                'low_memory_mode': False,
-                'cache_icons': True,
-                'update_check_interval': 7,
-                'enable_logging': True,
-                'log_level': 'info',
-                'max_log_size': 10
+                'max_backups': 10
             }
         }
         
