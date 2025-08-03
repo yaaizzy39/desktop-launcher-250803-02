@@ -27,6 +27,7 @@ class GroupIcon(QWidget):
         self.name = name
         self.items = []  # 登録されたアイテムのリスト
         self.drag_start_position = None
+        self.is_dragging = False  # ドラッグ中かどうかを追跡
         self.settings_manager = settings_manager
         self.main_app = main_app  # メインアプリケーションへの参照
         self.last_click_time = 0  # ダブルクリック検出用
@@ -208,6 +209,7 @@ class GroupIcon(QWidget):
         """マウスプレスイベント"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_start_position = event.position().toPoint()
+            self.is_dragging = False  # ドラッグフラグをリセット
         elif event.button() == Qt.MouseButton.RightButton:
             self.show_context_menu(event.globalPosition().toPoint())
             
@@ -219,6 +221,7 @@ class GroupIcon(QWidget):
             # ドラッグ距離をチェック
             distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
             if distance >= QApplication.startDragDistance():
+                self.is_dragging = True  # ドラッグ開始をマーク
                 # ウィンドウを移動
                 self.move(self.mapToGlobal(event.position().toPoint() - self.drag_start_position))
                 
@@ -226,9 +229,8 @@ class GroupIcon(QWidget):
         """マウスリリースイベント"""
         if event.button() == Qt.MouseButton.LeftButton:
             if self.drag_start_position is not None:
-                # ドラッグ距離をチェック
-                distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
-                if distance < QApplication.startDragDistance():
+                if not self.is_dragging:
+                    # ドラッグしていない場合のみクリックとして処理
                     # ダブルクリック検出
                     current_time = time.time()
                     if current_time - self.last_click_time < 0.3:  # 300ms以内ならダブルクリック
@@ -239,10 +241,12 @@ class GroupIcon(QWidget):
                     
                     self.last_click_time = current_time
                 else:
-                    # ドラッグ終了として処理
+                    # ドラッグ終了として処理 - clickedシグナルは発生させない
                     self.position_changed.emit()
                     
+                # フラグをリセット
                 self.drag_start_position = None
+                self.is_dragging = False
                 
     def show_context_menu(self, position):
         """コンテキストメニューを表示"""
