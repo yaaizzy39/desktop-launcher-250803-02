@@ -25,11 +25,7 @@ class SettingsManager:
                 'icon_size': 80,
                 'opacity': 80,
                 'icon_color': '#6496ff',
-                'enable_animations': True,
-                'animation_speed': 5,
-                'always_on_top': True,
-                'auto_hide': True,
-                'hide_delay': 3
+                'always_on_top': True
             },
             'behavior': {
                 'startup_with_windows': False,

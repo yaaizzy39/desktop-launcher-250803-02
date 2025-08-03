@@ -8,8 +8,8 @@ import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
                             QMessageBox, QMenu)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl
+from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag
 from ui.icon_utils import icon_extractor
 
 
@@ -22,6 +22,7 @@ class ItemWidget(QFrame):
     def __init__(self, item_info):
         super().__init__()
         self.item_info = item_info
+        self.drag_start_position = None
         self.setup_ui()
         
     def setup_ui(self):
@@ -143,10 +144,49 @@ class ItemWidget(QFrame):
                 icon_label.setText("📄")
         
     def mousePressEvent(self, event):
-        """マウスクリックで起動"""
+        """マウスプレスイベント"""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.launch_requested.emit(self.item_info['path'])
+            self.drag_start_position = event.position().toPoint()
         super().mousePressEvent(event)
+        
+    def mouseMoveEvent(self, event):
+        """マウス移動イベント（ドラッグ処理）"""
+        if (event.buttons() & Qt.MouseButton.LeftButton and 
+            self.drag_start_position is not None):
+            
+            # ドラッグ距離をチェック
+            distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
+            if distance >= QApplication.startDragDistance():
+                # ドラッグ操作を開始
+                self.start_drag()
+                
+    def mouseReleaseEvent(self, event):
+        """マウスリリースイベント"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.drag_start_position is not None:
+                # ドラッグ距離をチェック
+                distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
+                if distance < QApplication.startDragDistance():
+                    # クリックとして処理（起動）
+                    self.launch_requested.emit(self.item_info['path'])
+                    
+                self.drag_start_position = None
+        super().mouseReleaseEvent(event)
+        
+    def start_drag(self):
+        """ドラッグ操作を開始"""
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        
+        # ファイルパスをMimeDataに設定
+        mime_data.setUrls([QUrl.fromLocalFile(self.item_info['path'])])
+        # カスタムデータも設定（リスト間移動用）
+        mime_data.setData("application/x-launcher-item", str(self.item_info['path']).encode('utf-8'))
+        
+        drag.setMimeData(mime_data)
+        
+        # ドラッグ実行
+        drop_action = drag.exec(Qt.DropAction.MoveAction | Qt.DropAction.CopyAction)
 
 
 class ItemListWindow(QWidget):
@@ -157,6 +197,7 @@ class ItemListWindow(QWidget):
         self.group_icon = group_icon
         self.mouse_entered = False
         self.mouse_left_after_enter = False
+        self.is_pinned = False  # 固定表示モード
         
         # 遅延非表示用タイマー
         self.hide_timer = QTimer()
@@ -165,6 +206,7 @@ class ItemListWindow(QWidget):
         
         self.setup_ui()
         self.setup_window()
+        self.setup_drag_drop()
         
         # グループアイコンの変更を監視
         self.group_icon.items_changed.connect(self.refresh_items)
@@ -178,8 +220,12 @@ class ItemListWindow(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # マウストラッキングを有効にする
-        self.setMouseTracking(True)
+        # フォーカスを失ったら自動的に隠す
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+        
+    def setup_drag_drop(self):
+        """ドラッグ&ドロップ設定"""
+        self.setAcceptDrops(True)
         
     def setup_ui(self):
         """UI設定"""
@@ -204,10 +250,12 @@ class ItemListWindow(QWidget):
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(10, 5, 10, 5)
         
-        # タイトル
-        title_label = QLabel(f"📁 {str(self.group_icon.name)}")
-        title_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: white;")
+        # タイトル（ダブルクリック可能）
+        self.title_label = QLabel(f"📁 {str(self.group_icon.name)}")
+        self.title_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.title_label.setStyleSheet("color: white;")
+        self.title_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.title_label.mouseDoubleClickEvent = self.toggle_pin_mode
         
         # 閉じるボタン
         close_btn = QPushButton("×")
@@ -227,7 +275,7 @@ class ItemListWindow(QWidget):
         """)
         close_btn.clicked.connect(self.hide)
         
-        header_layout.addWidget(title_label)
+        header_layout.addWidget(self.title_label)
         header_layout.addStretch()
         header_layout.addWidget(close_btn)
         header_frame.setLayout(header_layout)
@@ -294,6 +342,7 @@ class ItemListWindow(QWidget):
         
         # 初期アイテム表示
         self.refresh_items()
+        self.update_title_display()
         
     def refresh_items(self):
         """アイテムリストを更新"""
@@ -375,7 +424,7 @@ class ItemListWindow(QWidget):
         
     def leaveEvent(self, event):
         """マウスがウィンドウから出た"""
-        if self.mouse_entered:
+        if self.mouse_entered and not self.is_pinned:  # 固定モードでない場合のみ
             self.mouse_left_after_enter = True
             # 少し遅延してから隠す（誤操作防止）
             self.hide_timer.start(300)  # 300ms後に隠す
@@ -383,12 +432,100 @@ class ItemListWindow(QWidget):
         
     def delayed_hide(self):
         """遅延非表示処理"""
+        # 固定モードの場合は隠さない
+        if self.is_pinned:
+            return
         # マウスがウィンドウ内に戻ってきていないかチェック
         if not self.underMouse() and self.mouse_left_after_enter:
             self.hide()
             
+    def focusOutEvent(self, event):
+        """フォーカスを失ったら隠す"""
+        # 固定モードまたはマウスがウィンドウ内にある場合は隠さない
+        if not self.is_pinned and not self.underMouse():
+            self.hide()
+        super().focusOutEvent(event)
+        
     def mousePressEvent(self, event):
         """マウスクリック時（ウィンドウ内の空白部分をクリック）"""
         # ウィンドウ内の空白部分をクリックした場合は隠さない
         # アイテムのクリックは各ItemWidgetで処理される
         super().mousePressEvent(event)
+        
+    def toggle_pin_mode(self, event):
+        """固定表示モードを切り替え"""
+        self.is_pinned = not self.is_pinned
+        self.update_title_display()
+        
+        if self.is_pinned:
+            # 固定モード：タイマーを停止
+            self.hide_timer.stop()
+        else:
+            # 通常モード：マウスがウィンドウ外にある場合は隠す
+            if not self.underMouse():
+                self.hide_timer.start(300)
+                
+    def update_title_display(self):
+        """タイトル表示を更新"""
+        pin_icon = "📌" if self.is_pinned else "📁"
+        self.title_label.setText(f"{pin_icon} {str(self.group_icon.name)}")
+        
+        # 固定モード時は背景色を少し変更
+        if self.is_pinned:
+            self.title_label.setStyleSheet("color: white; background-color: rgba(255, 200, 100, 50); border-radius: 3px; padding: 2px;")
+        else:
+            self.title_label.setStyleSheet("color: white;")
+            
+    def dragEnterEvent(self, event):
+        """ドラッグエンターイベント"""
+        if event.mimeData().hasFormat("application/x-launcher-item") or event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            # ドロップ可能な視覚フィードバック
+            self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")
+        else:
+            event.ignore()
+            
+    def dragLeaveEvent(self, event):
+        """ドラッグリーブイベント"""
+        self.setStyleSheet("")
+        
+    def dropEvent(self, event):
+        """ドロップイベント"""
+        self.setStyleSheet("")
+        
+        # リスト間移動の場合
+        if event.mimeData().hasFormat("application/x-launcher-item"):
+            item_path = event.mimeData().data("application/x-launcher-item").data().decode('utf-8')
+            
+            # 既に存在するかチェック
+            for item in self.group_icon.items:
+                if item['path'] == item_path:
+                    return  # 重複なので追加しない
+                    
+            # 他のグループから削除（常に実行 - アクションに関係なく移動として処理）
+            self.remove_item_from_other_groups(item_path)
+            
+            # このグループに追加
+            self.group_icon.add_item(item_path)
+            # UI更新を強制的に実行
+            self.refresh_items()
+            event.acceptProposedAction()
+            
+        # 通常のファイル/フォルダドロップの場合
+        elif event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                file_path = url.toLocalFile()
+                if file_path:
+                    self.group_icon.add_item(file_path)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+            
+    def remove_item_from_other_groups(self, item_path):
+        """他のグループから指定されたアイテムを削除"""
+        # QApplicationインスタンスから全てのグループアイコンを取得
+        app = QApplication.instance()
+        if hasattr(app, 'group_icons'):
+            for group_icon in app.group_icons:
+                if group_icon != self.group_icon:
+                    group_icon.remove_item(item_path)

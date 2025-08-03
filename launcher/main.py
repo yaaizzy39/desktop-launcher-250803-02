@@ -111,6 +111,7 @@ class LauncherApp(QApplication):
             
         group_icon = GroupIcon(name, position, self.settings_manager)
         group_icon.clicked.connect(self.show_item_list)
+        group_icon.double_clicked.connect(self.show_item_list_pinned)
         group_icon.position_changed.connect(self.save_groups)
         group_icon.items_changed.connect(self.save_groups)
         
@@ -131,6 +132,7 @@ class LauncherApp(QApplication):
         )
         group_icon.items = group_data.get('items', [])
         group_icon.clicked.connect(self.show_item_list)
+        group_icon.double_clicked.connect(self.show_item_list_pinned)
         group_icon.position_changed.connect(self.save_groups)
         group_icon.items_changed.connect(self.save_groups)
         
@@ -139,11 +141,6 @@ class LauncherApp(QApplication):
         
     def show_item_list(self, group_icon):
         """アイテムリストウィンドウを表示"""
-        # 他のウィンドウが開いている場合は閉じる
-        for other_icon, window in self.item_list_windows.items():
-            if other_icon != group_icon and window.isVisible():
-                window.hide()
-                
         # ウィンドウを作成または取得
         if group_icon not in self.item_list_windows:
             self.item_list_windows[group_icon] = ItemListWindow(group_icon)
@@ -155,6 +152,25 @@ class LauncherApp(QApplication):
             window.hide()
             return
             
+        # グループアイコンの近くに表示
+        icon_pos = group_icon.pos()
+        window.move(icon_pos.x() + 60, icon_pos.y())
+        window.show()
+        window.raise_()
+        window.activateWindow()
+        
+    def show_item_list_pinned(self, group_icon):
+        """アイテムリストウィンドウを固定モードで表示"""
+        # ウィンドウを作成または取得
+        if group_icon not in self.item_list_windows:
+            self.item_list_windows[group_icon] = ItemListWindow(group_icon)
+            
+        window = self.item_list_windows[group_icon]
+        
+        # 固定モードで表示
+        window.is_pinned = True
+        window.update_title_display()
+        
         # グループアイコンの近くに表示
         icon_pos = group_icon.pos()
         window.move(icon_pos.x() + 60, icon_pos.y())

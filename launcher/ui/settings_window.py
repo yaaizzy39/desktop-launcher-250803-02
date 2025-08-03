@@ -71,22 +71,6 @@ class AppearanceTab(QWidget):
         icon_group.setLayout(icon_layout)
         layout.addWidget(icon_group)
         
-        # アニメーション設定
-        animation_group = QGroupBox("アニメーション設定")
-        animation_layout = QFormLayout()
-        
-        self.enable_animations = QCheckBox("アニメーションを有効にする")
-        self.enable_animations.stateChanged.connect(self.settings_changed.emit)
-        animation_layout.addRow(self.enable_animations)
-        
-        self.animation_speed = QSlider(Qt.Orientation.Horizontal)
-        self.animation_speed.setRange(1, 10)
-        self.animation_speed.valueChanged.connect(self.settings_changed.emit)
-        animation_layout.addRow("アニメーション速度:", self.animation_speed)
-        
-        animation_group.setLayout(animation_layout)
-        layout.addWidget(animation_group)
-        
         # ウィンドウ設定
         window_group = QGroupBox("ウィンドウ設定")
         window_layout = QFormLayout()
@@ -94,16 +78,6 @@ class AppearanceTab(QWidget):
         self.always_on_top = QCheckBox("常に最前面に表示")
         self.always_on_top.stateChanged.connect(self.settings_changed.emit)
         window_layout.addRow(self.always_on_top)
-        
-        self.auto_hide = QCheckBox("自動的に隠す")
-        self.auto_hide.stateChanged.connect(self.settings_changed.emit)
-        window_layout.addRow(self.auto_hide)
-        
-        self.hide_delay = QSpinBox()
-        self.hide_delay.setRange(1, 10)
-        self.hide_delay.setSuffix(" 秒")
-        self.hide_delay.valueChanged.connect(self.settings_changed.emit)
-        window_layout.addRow("自動非表示時間:", self.hide_delay)
         
         window_group.setLayout(window_layout)
         layout.addWidget(window_group)
@@ -135,11 +109,7 @@ class AppearanceTab(QWidget):
         self.current_color = settings.get('icon_color', '#6496ff')
         self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
         
-        self.enable_animations.setChecked(settings.get('enable_animations', True))
-        self.animation_speed.setValue(settings.get('animation_speed', 5))
         self.always_on_top.setChecked(settings.get('always_on_top', True))
-        self.auto_hide.setChecked(settings.get('auto_hide', True))
-        self.hide_delay.setValue(settings.get('hide_delay', 3))
         
     def get_settings(self):
         """現在の設定を取得"""
@@ -147,11 +117,7 @@ class AppearanceTab(QWidget):
             'icon_size': self.icon_size_spin.value(),
             'opacity': self.opacity_slider.value(),
             'icon_color': self.current_color,
-            'enable_animations': self.enable_animations.isChecked(),
-            'animation_speed': self.animation_speed.value(),
-            'always_on_top': self.always_on_top.isChecked(),
-            'auto_hide': self.auto_hide.isChecked(),
-            'hide_delay': self.hide_delay.value()
+            'always_on_top': self.always_on_top.isChecked()
         }
 
 

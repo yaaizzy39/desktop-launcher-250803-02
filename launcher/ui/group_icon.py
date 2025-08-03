@@ -3,6 +3,7 @@ GroupIcon - デスクトップに表示されるグループアイコンウィ�
 """
 
 import os
+import time
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication, 
                             QMenu, QInputDialog, QMessageBox)
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
@@ -15,6 +16,7 @@ class GroupIcon(QWidget):
     
     # シグナル定義
     clicked = pyqtSignal(object)  # クリック時
+    double_clicked = pyqtSignal(object)  # ダブルクリック時（固定モードで表示）
     position_changed = pyqtSignal()  # 位置変更時
     items_changed = pyqtSignal()  # アイテム変更時
     
@@ -25,6 +27,7 @@ class GroupIcon(QWidget):
         self.items = []  # 登録されたアイテムのリスト
         self.drag_start_position = None
         self.settings_manager = settings_manager
+        self.last_click_time = 0  # ダブルクリック検出用
         
         self.setup_ui()
         self.setup_drag_drop()
@@ -142,8 +145,15 @@ class GroupIcon(QWidget):
                 # ドラッグ距離をチェック
                 distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
                 if distance < QApplication.startDragDistance():
-                    # クリックとして処理
-                    self.clicked.emit(self)
+                    # ダブルクリック検出
+                    current_time = time.time()
+                    if current_time - self.last_click_time < 0.3:  # 300ms以内ならダブルクリック
+                        self.double_clicked.emit(self)
+                    else:
+                        # シングルクリックとして処理
+                        self.clicked.emit(self)
+                    
+                    self.last_click_time = current_time
                 else:
                     # ドラッグ終了として処理
                     self.position_changed.emit()
@@ -250,6 +260,7 @@ class GroupIcon(QWidget):
         
         self.items.append(item_info)
         self.update_display()
+        self.items_changed.emit()
         
     def remove_item(self, item_path):
         """アイテムを削除"""
