@@ -136,17 +136,22 @@ class LauncherApp(QApplication):
         
     def show_item_list(self, group_icon):
         """アイテムリストウィンドウを表示"""
-        # 既に開いているウィンドウがあれば閉じる
-        for window in self.item_list_windows.values():
-            if window.isVisible():
+        # 他のウィンドウが開いている場合は閉じる
+        for other_icon, window in self.item_list_windows.items():
+            if other_icon != group_icon and window.isVisible():
                 window.hide()
                 
-        # 新しいウィンドウを作成または表示
+        # ウィンドウを作成または取得
         if group_icon not in self.item_list_windows:
             self.item_list_windows[group_icon] = ItemListWindow(group_icon)
             
         window = self.item_list_windows[group_icon]
         
+        # 既に表示されている場合は隠す（トグル動作）
+        if window.isVisible():
+            window.hide()
+            return
+            
         # グループアイコンの近くに表示
         icon_pos = group_icon.pos()
         window.move(icon_pos.x() + 60, icon_pos.y())

@@ -8,7 +8,7 @@ import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
                             QMessageBox, QMenu)
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
 
 
@@ -140,6 +140,14 @@ class ItemListWindow(QWidget):
     def __init__(self, group_icon):
         super().__init__()
         self.group_icon = group_icon
+        self.mouse_entered = False
+        self.mouse_left_after_enter = False
+        
+        # 遅延非表示用タイマー
+        self.hide_timer = QTimer()
+        self.hide_timer.setSingleShot(True)
+        self.hide_timer.timeout.connect(self.delayed_hide)
+        
         self.setup_ui()
         self.setup_window()
         
@@ -155,8 +163,8 @@ class ItemListWindow(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # フォーカスを失ったら自動的に隠す
-        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+        # マウストラッキングを有効にする
+        self.setMouseTracking(True)
         
     def setup_ui(self):
         """UI設定"""
@@ -336,21 +344,36 @@ class ItemListWindow(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             self.group_icon.remove_item(item_path)
             
-    def focusOutEvent(self, event):
-        """フォーカスを失ったら隠す"""
-        # マウスがウィンドウ内にある場合は隠さない
-        if not self.underMouse():
-            self.hide()
-        super().focusOutEvent(event)
+    def show(self):
+        """ウィンドウを表示"""
+        # 表示時に状態をリセット
+        self.mouse_entered = False
+        self.mouse_left_after_enter = False
+        self.hide_timer.stop()
+        super().show()
         
     def enterEvent(self, event):
         """マウスがウィンドウに入った"""
+        self.mouse_entered = True
+        self.hide_timer.stop()  # タイマーを停止
         super().enterEvent(event)
         
     def leaveEvent(self, event):
         """マウスがウィンドウから出た"""
-        # 少し遅延してから隠す
-        QApplication.instance().processEvents()
-        if not self.underMouse():
-            self.hide()
+        if self.mouse_entered:
+            self.mouse_left_after_enter = True
+            # 少し遅延してから隠す（誤操作防止）
+            self.hide_timer.start(300)  # 300ms後に隠す
         super().leaveEvent(event)
+        
+    def delayed_hide(self):
+        """遅延非表示処理"""
+        # マウスがウィンドウ内に戻ってきていないかチェック
+        if not self.underMouse() and self.mouse_left_after_enter:
+            self.hide()
+            
+    def mousePressEvent(self, event):
+        """マウスクリック時（ウィンドウ内の空白部分をクリック）"""
+        # ウィンドウ内の空白部分をクリックした場合は隠さない
+        # アイテムのクリックは各ItemWidgetで処理される
+        super().mousePressEvent(event)
