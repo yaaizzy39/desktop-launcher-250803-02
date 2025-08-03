@@ -122,7 +122,7 @@ class LauncherApp(QApplication):
             # デスクトップの中央あたりに配置
             position = QPoint(200, 200)
             
-        group_icon = GroupIcon(name, position, self.settings_manager)
+        group_icon = GroupIcon(name, position, self.settings_manager, self)
         group_icon.clicked.connect(self.show_item_list)
         group_icon.double_clicked.connect(self.show_item_list_pinned)
         group_icon.position_changed.connect(self.save_groups)
@@ -149,7 +149,8 @@ class LauncherApp(QApplication):
         group_icon = GroupIcon(
             group_data['name'], 
             QPoint(group_data['x'], group_data['y']),
-            self.settings_manager
+            self.settings_manager,
+            self
         )
         group_icon.items = group_data.get('items', [])
         group_icon.custom_icon_path = group_data.get('custom_icon_path', None)

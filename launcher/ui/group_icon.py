@@ -21,13 +21,14 @@ class GroupIcon(QWidget):
     position_changed = pyqtSignal()  # 位置変更時
     items_changed = pyqtSignal()  # アイテム変更時
     
-    def __init__(self, name="Group", position=QPoint(100, 100), settings_manager=None):
+    def __init__(self, name="Group", position=QPoint(100, 100), settings_manager=None, main_app=None):
         super().__init__()
         
         self.name = name
         self.items = []  # 登録されたアイテムのリスト
         self.drag_start_position = None
         self.settings_manager = settings_manager
+        self.main_app = main_app  # メインアプリケーションへの参照
         self.last_click_time = 0  # ダブルクリック検出用
         self.custom_icon_path = None  # カスタムアイコンのパス
         
@@ -219,6 +220,13 @@ class GroupIcon(QWidget):
         
         menu.addSeparator()
         
+        # 設定
+        settings_action = QAction("設定", self)
+        settings_action.triggered.connect(self.show_settings)
+        menu.addAction(settings_action)
+        
+        menu.addSeparator()
+        
         # アイテムをクリア
         clear_action = QAction("アイテムをクリア", self)
         clear_action.triggered.connect(self.clear_items)
@@ -251,6 +259,17 @@ class GroupIcon(QWidget):
             self.custom_icon_path = selected_icon
             self.update_display()
             self.items_changed.emit()  # データ保存のため
+            
+    def show_settings(self):
+        """設定ウィンドウを表示"""
+        if self.main_app:
+            self.main_app.show_settings()
+        else:
+            # main_appが設定されていない場合の警告
+            QMessageBox.warning(
+                self, "エラー", 
+                "設定ウィンドウを表示できません。\nメインアプリケーションとの接続に問題があります。"
+            )
             
     def clear_items(self):
         """アイテムをクリア"""
