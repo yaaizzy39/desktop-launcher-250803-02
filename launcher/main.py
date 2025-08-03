@@ -9,7 +9,7 @@ import os
 import json
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu, QWidget, 
                             QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-                            QMainWindow, QMessageBox)
+                            QMainWindow, QMessageBox, QInputDialog)
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor, QAction
 
@@ -97,14 +97,27 @@ class LauncherApp(QApplication):
         groups_data = self.data_manager.load_groups()
         
         if not groups_data:
-            # 初回起動時はデフォルトグループを作成
+            # 初回起動時はデフォルトグループを作成（名前を指定してダイアログを回避）
             self.create_new_group("Apps", QPoint(100, 100))
         else:
             for group_data in groups_data:
                 self.create_group_from_data(group_data)
                 
-    def create_new_group(self, name="New Group", position=None):
+    def create_new_group(self, name=None, position=None):
         """新しいグループアイコンを作成"""
+        # 名前が指定されていない場合は入力ダイアログを表示
+        if name is None:
+            name, ok = QInputDialog.getText(
+                None, 
+                "新しいグループを作成", 
+                "グループ名を入力してください:",
+                text="New Group"
+            )
+            # キャンセルされた場合は作成しない
+            if not ok or not name.strip():
+                return None
+            name = name.strip()
+            
         if position is None:
             # デスクトップの中央あたりに配置
             position = QPoint(200, 200)
@@ -131,6 +144,7 @@ class LauncherApp(QApplication):
             self.settings_manager
         )
         group_icon.items = group_data.get('items', [])
+        group_icon.custom_icon_path = group_data.get('custom_icon_path', None)
         group_icon.clicked.connect(self.show_item_list)
         group_icon.double_clicked.connect(self.show_item_list_pinned)
         group_icon.position_changed.connect(self.save_groups)
@@ -186,7 +200,8 @@ class LauncherApp(QApplication):
                 'name': group_icon.name,
                 'x': group_icon.x(),
                 'y': group_icon.y(),
-                'items': group_icon.items
+                'items': group_icon.items,
+                'custom_icon_path': group_icon.custom_icon_path
             }
             groups_data.append(group_data)
             

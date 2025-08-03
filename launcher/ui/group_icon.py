@@ -5,7 +5,7 @@ GroupIcon - デスクトップに表示されるグループアイコンウィ�
 import os
 import time
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication, 
-                            QMenu, QInputDialog, QMessageBox)
+                            QMenu, QInputDialog, QMessageBox, QDialog)
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
 from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
                         QPixmap, QIcon, QAction, QDrag)
@@ -29,6 +29,7 @@ class GroupIcon(QWidget):
         self.drag_start_position = None
         self.settings_manager = settings_manager
         self.last_click_time = 0  # ダブルクリック検出用
+        self.custom_icon_path = None  # カスタムアイコンのパス
         
         self.setup_ui()
         self.setup_drag_drop()
@@ -92,9 +93,50 @@ class GroupIcon(QWidget):
         
     def update_display(self):
         """表示を更新"""
+        # カスタムアイコンがある場合はアイコンを表示、ない場合はアイテム数を表示
+        if self.custom_icon_path and os.path.exists(self.custom_icon_path):
+            self.display_custom_icon()
+        else:
+            self.display_item_count()
+        
+        # 名前を更新
+        self.text_label.setText(str(self.name))
+        
+    def display_custom_icon(self):
+        """カスタムアイコンを表示"""
+        try:
+            # アイコンを読み込み
+            pixmap = QPixmap(self.custom_icon_path)
+            if not pixmap.isNull():
+                # アイコンサイズに合わせてスケール
+                icon_size = self.icon_label.width()
+                scaled_pixmap = pixmap.scaled(icon_size - 4, icon_size - 4, 
+                                            Qt.AspectRatioMode.KeepAspectRatio,
+                                            Qt.TransformationMode.SmoothTransformation)
+                self.icon_label.setPixmap(scaled_pixmap)
+                
+                # 背景スタイルを設定（アイコン用）
+                border_radius = icon_size // 2
+                self.icon_label.setStyleSheet(f"""
+                    QLabel {{
+                        background-color: rgba(255, 255, 255, 200);
+                        border-radius: {border_radius}px;
+                        border: 2px solid rgba(200, 200, 200, 150);
+                    }}
+                """)
+            else:
+                # 読み込み失敗時はアイテム数表示にフォールバック
+                self.display_item_count()
+        except Exception as e:
+            print(f"カスタムアイコン表示エラー: {e}")
+            self.display_item_count()
+            
+    def display_item_count(self):
+        """アイテム数を表示"""
         # アイテム数を表示
         item_count = len(self.items)
         self.icon_label.setText(str(item_count))
+        self.icon_label.setPixmap(QPixmap())  # ピクスマップをクリア
         
         # 設定から色を取得、なければデフォルト色を使用
         if self.settings_manager:
@@ -107,19 +149,19 @@ class GroupIcon(QWidget):
         icon_size = self.icon_label.width()
         border_radius = icon_size // 2
         
+        # フォントサイズをアイコンサイズに合わせて調整
+        font_size = max(12, min(24, icon_size // 4))
+        
         self.icon_label.setStyleSheet(f"""
             QLabel {{
                 background-color: {icon_color};
                 border-radius: {border_radius}px;
                 border: 2px solid rgba(255, 255, 255, 100);
                 color: white;
-                font-size: 16px;
+                font-size: {font_size}px;
                 font-weight: bold;
             }}
         """)
-        
-        # 名前を更新
-        self.text_label.setText(str(self.name))
         
     def mousePressEvent(self, event):
         """マウスプレスイベント"""
@@ -170,6 +212,11 @@ class GroupIcon(QWidget):
         rename_action.triggered.connect(self.rename_group)
         menu.addAction(rename_action)
         
+        # アイコンを変更
+        icon_action = QAction("アイコンを変更", self)
+        icon_action.triggered.connect(self.change_icon)
+        menu.addAction(icon_action)
+        
         menu.addSeparator()
         
         # アイテムをクリア
@@ -193,6 +240,17 @@ class GroupIcon(QWidget):
             self.name = text.strip()
             self.update_display()
             self.items_changed.emit()
+            
+    def change_icon(self):
+        """アイコンを変更"""
+        from ui.icon_selector_dialog import IconSelectorDialog
+        
+        dialog = IconSelectorDialog(self, self.custom_icon_path)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_icon = dialog.get_selected_icon()
+            self.custom_icon_path = selected_icon
+            self.update_display()
+            self.items_changed.emit()  # データ保存のため
             
     def clear_items(self):
         """アイテムをクリア"""
@@ -291,20 +349,6 @@ class GroupIcon(QWidget):
             opacity = settings.get('opacity', 80) / 100.0
             self.setWindowOpacity(opacity)
             
-            # 色適用
-            icon_color = settings.get('icon_color', '#6496ff')
-            
-            self.icon_label.setStyleSheet(f"""
-                QLabel {{
-                    background-color: {icon_color};
-                    border-radius: {icon_label_size // 2}px;
-                    border: 2px solid rgba(255, 255, 255, 100);
-                    color: white;
-                    font-size: 16px;
-                    font-weight: bold;
-                }}
-            """)
-            
             # 常に最前面設定
             always_on_top = settings.get('always_on_top', True)
             flags = self.windowFlags()
@@ -314,10 +358,8 @@ class GroupIcon(QWidget):
                 flags &= ~Qt.WindowType.WindowStaysOnTopHint
             self.setWindowFlags(flags)
             
-            # 設定適用後に表示を更新（update_display()を呼ぶと設定が上書きされるため、直接更新）
-            item_count = len(self.items)
-            self.icon_label.setText(str(item_count))
-            self.text_label.setText(str(self.name))
+            # 表示を更新（カスタムアイコンがあればそれを表示、なければ数字を表示）
+            self.update_display()
             self.show()  # フラグ変更後に再表示
             
         except Exception as e:
