@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication,
                             QMenu, QInputDialog, QMessageBox, QDialog)
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
 from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
-                        QPixmap, QIcon, QAction, QDrag)
+                        QPixmap, QIcon, QAction, QDrag, QRegion)
 from utils.shortcut_resolver import resolve_shortcut, get_display_name
 
 
@@ -125,10 +125,14 @@ class GroupIcon(QWidget):
             if not pixmap.isNull():
                 # アイコンサイズに合わせてスケール
                 icon_size = self.icon_label.width()
-                scaled_pixmap = pixmap.scaled(icon_size - 4, icon_size - 4, 
+                target_size = icon_size - 4
+                scaled_pixmap = pixmap.scaled(target_size, target_size, 
                                             Qt.AspectRatioMode.KeepAspectRatio,
                                             Qt.TransformationMode.SmoothTransformation)
-                self.icon_label.setPixmap(scaled_pixmap)
+                
+                # 円形にマスクされたピクスマップを作成
+                circular_pixmap = self.create_circular_pixmap(scaled_pixmap, target_size)
+                self.icon_label.setPixmap(circular_pixmap)
                 
                 # 背景スタイルを設定（アイコン用）
                 border_radius = icon_size // 2
@@ -145,6 +149,28 @@ class GroupIcon(QWidget):
         except Exception as e:
             print(f"カスタムアイコン表示エラー: {e}")
             self.display_item_count()
+            
+    def create_circular_pixmap(self, source_pixmap, size):
+        """ピクスマップを円形にマスクする"""
+        
+        # 正方形のピクスマップを作成
+        circular_pixmap = QPixmap(size, size)
+        circular_pixmap.fill(QColor(0, 0, 0, 0))  # 透明で初期化
+        
+        painter = QPainter(circular_pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # 円形の描画領域を設定
+        region = QRegion(0, 0, size, size, QRegion.RegionType.Ellipse)
+        painter.setClipRegion(region)
+        
+        # 画像を中央に描画
+        x = (size - source_pixmap.width()) // 2
+        y = (size - source_pixmap.height()) // 2
+        painter.drawPixmap(x, y, source_pixmap)
+        
+        painter.end()
+        return circular_pixmap
             
     def display_item_count(self):
         """アイテム数を表示"""

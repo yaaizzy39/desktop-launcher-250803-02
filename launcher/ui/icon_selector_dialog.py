@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QScrollArea, QWidget, QPushButton, QLabel,
                             QGridLayout, QMessageBox, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor, QRegion
 
 
 class IconPreviewWidget(QFrame):
@@ -36,6 +36,14 @@ class IconPreviewWidget(QFrame):
         self.icon_label = QLabel()
         self.icon_label.setFixedSize(64, 64)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 円形の背景スタイルを設定
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(255, 255, 255, 200);
+                border-radius: 32px;
+                border: 2px solid rgba(200, 200, 200, 150);
+            }
+        """)
         
         # アイコンを読み込み
         pixmap = QPixmap(self.icon_path)
@@ -43,7 +51,9 @@ class IconPreviewWidget(QFrame):
             # 64x64にスケール
             scaled_pixmap = pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, 
                                         Qt.TransformationMode.SmoothTransformation)
-            self.icon_label.setPixmap(scaled_pixmap)
+            # 円形にマスク
+            circular_pixmap = self.create_circular_pixmap(scaled_pixmap, 64)
+            self.icon_label.setPixmap(circular_pixmap)
         else:
             # 読み込み失敗時のフォールバック
             self.icon_label.setText("❌")
@@ -60,6 +70,27 @@ class IconPreviewWidget(QFrame):
         self.setLayout(layout)
         
         self.update_style()
+        
+    def create_circular_pixmap(self, source_pixmap, size):
+        """ピクスマップを円形にマスクする"""
+        # 正方形のピクスマップを作成
+        circular_pixmap = QPixmap(size, size)
+        circular_pixmap.fill(QColor(0, 0, 0, 0))  # 透明で初期化
+        
+        painter = QPainter(circular_pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # 円形の描画領域を設定
+        region = QRegion(0, 0, size, size, QRegion.RegionType.Ellipse)
+        painter.setClipRegion(region)
+        
+        # 画像を中央に描画
+        x = (size - source_pixmap.width()) // 2
+        y = (size - source_pixmap.height()) // 2
+        painter.drawPixmap(x, y, source_pixmap)
+        
+        painter.end()
+        return circular_pixmap
         
     def update_style(self):
         """スタイルを更新"""
