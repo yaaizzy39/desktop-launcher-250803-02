@@ -91,10 +91,22 @@ class GroupIcon(QWidget):
         # アイテム数を表示
         item_count = len(self.items)
         self.icon_label.setText(str(item_count))
+        
+        # 設定から色を取得、なければデフォルト色を使用
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            icon_color = appearance_settings.get('icon_color', '#6496ff')
+        else:
+            icon_color = '#6496ff'
+            
+        # アイコンサイズを取得
+        icon_size = self.icon_label.width()
+        border_radius = icon_size // 2
+        
         self.icon_label.setStyleSheet(f"""
             QLabel {{
-                background-color: rgba(100, 150, 255, 200);
-                border-radius: 25px;
+                background-color: {icon_color};
+                border-radius: {border_radius}px;
                 border: 2px solid rgba(255, 255, 255, 100);
                 color: white;
                 font-size: 16px;
@@ -283,8 +295,10 @@ class GroupIcon(QWidget):
                 flags &= ~Qt.WindowType.WindowStaysOnTopHint
             self.setWindowFlags(flags)
             
-            # 表示更新
-            self.update_display()
+            # 設定適用後に表示を更新（update_display()を呼ぶと設定が上書きされるため、直接更新）
+            item_count = len(self.items)
+            self.icon_label.setText(str(item_count))
+            self.text_label.setText(str(self.name))
             self.show()  # フラグ変更後に再表示
             
         except Exception as e:

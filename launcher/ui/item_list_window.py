@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QMessageBox, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction
+from ui.icon_utils import icon_extractor
 
 
 class ItemWidget(QFrame):
@@ -48,37 +49,18 @@ class ItemWidget(QFrame):
         icon_label = QLabel()
         icon_label.setFixedSize(24, 24)
         
-        # タイプに応じてアイコンを設定
-        if self.item_info['type'] == 'folder':
-            # フォルダアイコン
-            icon_label.setStyleSheet("""
-                QLabel {
-                    background-color: #ffd700;
-                    border-radius: 3px;
-                    border: 1px solid #ccaa00;
-                }
-            """)
-            icon_label.setText("📁")
-        else:
-            # ファイルアイコン
-            if self.item_info['path'].lower().endswith('.exe'):
-                icon_label.setStyleSheet("""
-                    QLabel {
-                        background-color: #ff6b6b;
-                        border-radius: 3px;
-                        border: 1px solid #cc5555;
-                    }
-                """)
-                icon_label.setText("⚡")
+        # ファイルの実際のアイコンを取得
+        try:
+            file_icon = icon_extractor.get_file_icon(self.item_info['path'], 24)
+            if not file_icon.isNull():
+                pixmap = file_icon.pixmap(24, 24)
+                icon_label.setPixmap(pixmap)
             else:
-                icon_label.setStyleSheet("""
-                    QLabel {
-                        background-color: #4ecdc4;
-                        border-radius: 3px;
-                        border: 1px solid #3ea39c;
-                    }
-                """)
-                icon_label.setText("📄")
+                # フォールバック: デフォルトアイコン
+                self._set_default_icon(icon_label)
+        except Exception as e:
+            print(f"アイコン設定エラー: {e}")
+            self._set_default_icon(icon_label)
                 
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
@@ -126,6 +108,39 @@ class ItemWidget(QFrame):
         layout.addWidget(remove_btn)
         
         self.setLayout(layout)
+        
+    def _set_default_icon(self, icon_label):
+        """デフォルトアイコンを設定"""
+        if self.item_info['type'] == 'folder':
+            # フォルダアイコン
+            icon_label.setStyleSheet("""
+                QLabel {
+                    background-color: #ffd700;
+                    border-radius: 3px;
+                    border: 1px solid #ccaa00;
+                }
+            """)
+            icon_label.setText("📁")
+        else:
+            # ファイルアイコン
+            if self.item_info['path'].lower().endswith('.exe'):
+                icon_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #ff6b6b;
+                        border-radius: 3px;
+                        border: 1px solid #cc5555;
+                    }
+                """)
+                icon_label.setText("⚡")
+            else:
+                icon_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #4ecdc4;
+                        border-radius: 3px;
+                        border: 1px solid #3ea39c;
+                    }
+                """)
+                icon_label.setText("📄")
         
     def mousePressEvent(self, event):
         """マウスクリックで起動"""

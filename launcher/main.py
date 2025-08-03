@@ -42,6 +42,9 @@ class LauncherApp(QApplication):
         # 初期グループを読み込み
         self.load_groups()
         
+        # 初期設定を適用
+        self.apply_initial_settings()
+        
     def setup_system_tray(self):
         """システムトレイアイコンを設定"""
         self.tray_icon = QSystemTrayIcon(self)
@@ -188,7 +191,10 @@ class LauncherApp(QApplication):
         try:
             # 外観設定を適用
             appearance = settings.get('appearance', {})
+            print(f"外観設定を適用中: {appearance}")
+            
             for group_icon in self.group_icons:
+                print(f"グループアイコン '{group_icon.name}' に設定を適用中...")
                 group_icon.apply_appearance_settings(appearance)
                 
             # 動作設定を適用
@@ -198,6 +204,7 @@ class LauncherApp(QApplication):
             print("設定が適用されました")
             
         except Exception as e:
+            print(f"設定適用エラー: {e}")
             QMessageBox.critical(None, "エラー", f"設定の適用中にエラーが発生しました:\n{str(e)}")
             
     def show_about(self):
@@ -221,6 +228,15 @@ class LauncherApp(QApplication):
         """
         
         QMessageBox.about(None, "Desktop Launcher について", about_text)
+        
+    def apply_initial_settings(self):
+        """初期設定を適用"""
+        try:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            for group_icon in self.group_icons:
+                group_icon.apply_appearance_settings(appearance_settings)
+        except Exception as e:
+            print(f"初期設定適用エラー: {e}")
         
     def quit_application(self):
         """アプリケーションを終了"""

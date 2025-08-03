@@ -23,6 +23,7 @@ class AppearanceTab(QWidget):
     def __init__(self, settings_manager):
         super().__init__()
         self.settings_manager = settings_manager
+        self.current_color = '#6496ff'  # デフォルト色を保存
         self.setup_ui()
         self.load_settings()
         
@@ -116,9 +117,11 @@ class AppearanceTab(QWidget):
         
     def choose_color(self):
         """色選択ダイアログ"""
-        color = QColorDialog.getColor(QColor("#6496ff"), self)
+        current_color = QColor(self.current_color)
+        color = QColorDialog.getColor(current_color, self)
         if color.isValid():
-            self.color_preview.setStyleSheet(f"background-color: {color.name()}; border: 1px solid #ccc;")
+            self.current_color = color.name()
+            self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
             self.settings_changed.emit()
             
     def load_settings(self):
@@ -129,8 +132,8 @@ class AppearanceTab(QWidget):
         self.opacity_slider.setValue(settings.get('opacity', 80))
         self.update_opacity_label(settings.get('opacity', 80))
         
-        color = settings.get('icon_color', '#6496ff')
-        self.color_preview.setStyleSheet(f"background-color: {color}; border: 1px solid #ccc;")
+        self.current_color = settings.get('icon_color', '#6496ff')
+        self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
         
         self.enable_animations.setChecked(settings.get('enable_animations', True))
         self.animation_speed.setValue(settings.get('animation_speed', 5))
@@ -140,13 +143,10 @@ class AppearanceTab(QWidget):
         
     def get_settings(self):
         """現在の設定を取得"""
-        color_style = self.color_preview.styleSheet()
-        color = color_style.split('background-color: ')[1].split(';')[0]
-        
         return {
             'icon_size': self.icon_size_spin.value(),
             'opacity': self.opacity_slider.value(),
-            'icon_color': color,
+            'icon_color': self.current_color,
             'enable_animations': self.enable_animations.isChecked(),
             'animation_speed': self.animation_speed.value(),
             'always_on_top': self.always_on_top.isChecked(),
