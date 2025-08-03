@@ -79,6 +79,10 @@ class AppearanceTab(QWidget):
         self.always_on_top.stateChanged.connect(self.settings_changed.emit)
         window_layout.addRow(self.always_on_top)
         
+        self.show_group_names = QCheckBox("グループ名を表示")
+        self.show_group_names.stateChanged.connect(self.settings_changed.emit)
+        window_layout.addRow(self.show_group_names)
+        
         window_group.setLayout(window_layout)
         layout.addWidget(window_group)
         
@@ -110,6 +114,7 @@ class AppearanceTab(QWidget):
         self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
         
         self.always_on_top.setChecked(settings.get('always_on_top', True))
+        self.show_group_names.setChecked(settings.get('show_group_names', True))
         
     def get_settings(self):
         """現在の設定を取得"""
@@ -117,7 +122,8 @@ class AppearanceTab(QWidget):
             'icon_size': self.icon_size_spin.value(),
             'opacity': self.opacity_slider.value(),
             'icon_color': self.current_color,
-            'always_on_top': self.always_on_top.isChecked()
+            'always_on_top': self.always_on_top.isChecked(),
+            'show_group_names': self.show_group_names.isChecked()
         }
 
 

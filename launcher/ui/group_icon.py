@@ -100,8 +100,22 @@ class GroupIcon(QWidget):
         else:
             self.display_item_count()
         
-        # 名前を更新
-        self.text_label.setText(str(self.name))
+        # グループ名の表示・非表示を設定
+        self.update_group_name_visibility()
+        
+    def update_group_name_visibility(self):
+        """グループ名の表示・非表示を更新"""
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            show_names = appearance_settings.get('show_group_names', True)
+        else:
+            show_names = True
+            
+        if show_names:
+            self.text_label.setText(str(self.name))
+            self.text_label.show()
+        else:
+            self.text_label.hide()
         
     def display_custom_icon(self):
         """カスタムアイコンを表示"""
@@ -379,6 +393,10 @@ class GroupIcon(QWidget):
             
             # 表示を更新（カスタムアイコンがあればそれを表示、なければ数字を表示）
             self.update_display()
+            
+            # グループ名の表示設定を適用
+            self.update_group_name_visibility()
+            
             self.show()  # フラグ変更後に再表示
             
         except Exception as e:

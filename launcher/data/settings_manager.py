@@ -25,7 +25,8 @@ class SettingsManager:
                 'icon_size': 80,
                 'opacity': 80,
                 'icon_color': '#6496ff',
-                'always_on_top': True
+                'always_on_top': True,
+                'show_group_names': True
             },
             'behavior': {
                 'startup_with_windows': False,
