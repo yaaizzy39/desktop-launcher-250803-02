@@ -15,7 +15,9 @@ from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor, QAction
 
 from ui.group_icon import GroupIcon
 from ui.item_list_window import ItemListWindow
+from ui.settings_window import SettingsWindow
 from data.data_manager import DataManager
+from data.settings_manager import SettingsManager
 
 
 class LauncherApp(QApplication):
@@ -27,10 +29,12 @@ class LauncherApp(QApplication):
         
         # データマネージャー初期化
         self.data_manager = DataManager()
+        self.settings_manager = SettingsManager(self.data_manager)
         
         # グループアイコン管理
         self.group_icons = []
         self.item_list_windows = {}
+        self.settings_window = None
         
         # システムトレイ設定
         self.setup_system_tray()
@@ -54,6 +58,18 @@ class LauncherApp(QApplication):
         new_group_action = QAction("新しいグループを作成", self)
         new_group_action.triggered.connect(lambda: self.create_new_group())
         tray_menu.addAction(new_group_action)
+        
+        tray_menu.addSeparator()
+        
+        # 設定アクション
+        settings_action = QAction("設定", self)
+        settings_action.triggered.connect(self.show_settings)
+        tray_menu.addAction(settings_action)
+        
+        # 情報アクション
+        about_action = QAction("バージョン情報", self)
+        about_action.triggered.connect(self.show_about)
+        tray_menu.addAction(about_action)
         
         tray_menu.addSeparator()
         
@@ -90,7 +106,7 @@ class LauncherApp(QApplication):
             # デスクトップの中央あたりに配置
             position = QPoint(200, 200)
             
-        group_icon = GroupIcon(name, position)
+        group_icon = GroupIcon(name, position, self.settings_manager)
         group_icon.clicked.connect(self.show_item_list)
         group_icon.position_changed.connect(self.save_groups)
         group_icon.items_changed.connect(self.save_groups)
@@ -107,7 +123,8 @@ class LauncherApp(QApplication):
         """データからグループアイコンを作成"""
         group_icon = GroupIcon(
             group_data['name'], 
-            QPoint(group_data['x'], group_data['y'])
+            QPoint(group_data['x'], group_data['y']),
+            self.settings_manager
         )
         group_icon.items = group_data.get('items', [])
         group_icon.clicked.connect(self.show_item_list)
@@ -151,8 +168,61 @@ class LauncherApp(QApplication):
             
         self.data_manager.save_groups(groups_data)
         
+    def show_settings(self):
+        """設定ウィンドウを表示"""
+        if self.settings_window is None:
+            self.settings_window = SettingsWindow(self.settings_manager)
+            self.settings_window.settings_applied.connect(self.apply_settings)
+            
+        self.settings_window.show()
+        self.settings_window.raise_()
+        self.settings_window.activateWindow()
+        
+    def apply_settings(self, settings):
+        """設定を適用"""
+        try:
+            # 外観設定を適用
+            appearance = settings.get('appearance', {})
+            for group_icon in self.group_icons:
+                group_icon.apply_appearance_settings(appearance)
+                
+            # 動作設定を適用
+            behavior = settings.get('behavior', {})
+            
+            # その他の設定適用処理をここに追加
+            print("設定が適用されました")
+            
+        except Exception as e:
+            QMessageBox.critical(None, "エラー", f"設定の適用中にエラーが発生しました:\n{str(e)}")
+            
+    def show_about(self):
+        """バージョン情報を表示"""
+        about_text = """
+        <h3>Desktop Launcher</h3>
+        <p><b>バージョン:</b> 1.0.0</p>
+        <p><b>作成者:</b> Claude Code</p>
+        <p><b>説明:</b> Windows用デスクトップランチャーアプリケーション</p>
+        <hr>
+        <p>アプリやフォルダをドラッグ&ドロップで登録し、<br>
+        グループごとに分類して簡単に起動できます。</p>
+        <p><b>機能:</b></p>
+        <ul>
+        <li>常駐機能（システムトレイ）</li>
+        <li>ドラッグ&ドロップ対応</li>
+        <li>グループ管理</li>
+        <li>詳細設定</li>
+        <li>自動バックアップ</li>
+        </ul>
+        """
+        
+        QMessageBox.about(None, "Desktop Launcher について", about_text)
+        
     def quit_application(self):
         """アプリケーションを終了"""
+        # 設定ウィンドウを閉じる
+        if self.settings_window:
+            self.settings_window.close()
+            
         # 全てのウィンドウを閉じる
         for group_icon in self.group_icons:
             group_icon.close()

@@ -18,12 +18,13 @@ class GroupIcon(QWidget):
     position_changed = pyqtSignal()  # 位置変更時
     items_changed = pyqtSignal()  # アイテム変更時
     
-    def __init__(self, name="Group", position=QPoint(100, 100)):
+    def __init__(self, name="Group", position=QPoint(100, 100), settings_manager=None):
         super().__init__()
         
         self.name = name
         self.items = []  # 登録されたアイテムのリスト
         self.drag_start_position = None
+        self.settings_manager = settings_manager
         
         self.setup_ui()
         self.setup_drag_drop()
@@ -243,3 +244,54 @@ class GroupIcon(QWidget):
         self.items = [item for item in self.items if item['path'] != item_path]
         self.update_display()
         self.items_changed.emit()
+        
+    def apply_appearance_settings(self, settings):
+        """外観設定を適用"""
+        try:
+            # サイズ変更
+            icon_size = settings.get('icon_size', 80)
+            self.setFixedSize(icon_size, icon_size)
+            
+            # アイコンラベルサイズ調整
+            icon_label_size = int(icon_size * 0.6)
+            self.icon_label.setFixedSize(icon_label_size, icon_label_size)
+            
+            # 透明度適用
+            opacity = settings.get('opacity', 80) / 100.0
+            self.setWindowOpacity(opacity)
+            
+            # 色適用
+            icon_color = settings.get('icon_color', '#6496ff')
+            
+            self.icon_label.setStyleSheet(f"""
+                QLabel {{
+                    background-color: {icon_color};
+                    border-radius: {icon_label_size // 2}px;
+                    border: 2px solid rgba(255, 255, 255, 100);
+                    color: white;
+                    font-size: 16px;
+                    font-weight: bold;
+                }}
+            """)
+            
+            # 常に最前面設定
+            always_on_top = settings.get('always_on_top', True)
+            flags = self.windowFlags()
+            if always_on_top:
+                flags |= Qt.WindowType.WindowStaysOnTopHint
+            else:
+                flags &= ~Qt.WindowType.WindowStaysOnTopHint
+            self.setWindowFlags(flags)
+            
+            # 表示更新
+            self.update_display()
+            self.show()  # フラグ変更後に再表示
+            
+        except Exception as e:
+            print(f"外観設定適用エラー: {e}")
+            
+    def get_current_settings(self):
+        """現在の設定を取得"""
+        if self.settings_manager:
+            return self.settings_manager.get_appearance_settings()
+        return {}
