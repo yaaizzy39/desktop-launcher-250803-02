@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication,
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
 from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
                         QPixmap, QIcon, QAction, QDrag)
+from utils.shortcut_resolver import resolve_shortcut, get_display_name
 
 
 class GroupIcon(QWidget):
@@ -246,16 +247,23 @@ class GroupIcon(QWidget):
             
     def add_item(self, file_path):
         """アイテムを追加"""
-        # 既に存在するかチェック
+        # ショートカットの場合はリンク先を解決
+        resolved_path = resolve_shortcut(file_path)
+        
+        # 既に存在するかチェック（解決後のパスで）
         for item in self.items:
-            if item['path'] == file_path:
+            if item['path'] == resolved_path:
                 return  # 重複なので追加しない
                 
+        # 表示名を取得（ショートカットの場合は.lnkを除去）
+        display_name = get_display_name(file_path)
+        
         # アイテム情報を作成
         item_info = {
-            'path': file_path,
-            'name': os.path.basename(file_path),
-            'type': 'folder' if os.path.isdir(file_path) else 'file'
+            'path': resolved_path,  # 解決後のパスを保存
+            'name': display_name,   # 表示用の名前
+            'type': 'folder' if os.path.isdir(resolved_path) else 'file',
+            'original_path': file_path  # 元のパス（ショートカットの場合のため）
         }
         
         self.items.append(item_info)
