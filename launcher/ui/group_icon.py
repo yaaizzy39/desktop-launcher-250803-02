@@ -1,0 +1,245 @@
+"""
+GroupIcon - デスクトップに表示されるグループアイコンウィジェット
+"""
+
+import os
+from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication, 
+                            QMenu, QInputDialog, QMessageBox)
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
+from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
+                        QPixmap, QIcon, QAction, QDrag)
+
+
+class GroupIcon(QWidget):
+    """グループアイコンウィジェット"""
+    
+    # シグナル定義
+    clicked = pyqtSignal(object)  # クリック時
+    position_changed = pyqtSignal()  # 位置変更時
+    items_changed = pyqtSignal()  # アイテム変更時
+    
+    def __init__(self, name="Group", position=QPoint(100, 100)):
+        super().__init__()
+        
+        self.name = name
+        self.items = []  # 登録されたアイテムのリスト
+        self.drag_start_position = None
+        
+        self.setup_ui()
+        self.setup_drag_drop()
+        
+        # ウィンドウの設定
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # 位置設定
+        self.move(position)
+        
+    def setup_ui(self):
+        """UI設定"""
+        self.setFixedSize(80, 80)
+        
+        # レイアウト
+        layout = QVBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(2)
+        
+        # アイコン表示用ラベル
+        self.icon_label = QLabel()
+        self.icon_label.setFixedSize(50, 50)
+        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(100, 150, 255, 200);
+                border-radius: 25px;
+                border: 2px solid rgba(255, 255, 255, 100);
+            }
+        """)
+        
+        # テキスト表示用ラベル
+        self.text_label = QLabel(str(self.name))
+        self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                background-color: rgba(0, 0, 0, 150);
+                border-radius: 8px;
+                padding: 2px 4px;
+                font-size: 10px;
+                font-weight: bold;
+            }
+        """)
+        
+        layout.addWidget(self.icon_label)
+        layout.addWidget(self.text_label)
+        self.setLayout(layout)
+        
+        # アイテム数表示を更新
+        self.update_display()
+        
+    def setup_drag_drop(self):
+        """ドラッグ＆ドロップ設定"""
+        self.setAcceptDrops(True)
+        
+    def update_display(self):
+        """表示を更新"""
+        # アイテム数を表示
+        item_count = len(self.items)
+        self.icon_label.setText(str(item_count))
+        self.icon_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: rgba(100, 150, 255, 200);
+                border-radius: 25px;
+                border: 2px solid rgba(255, 255, 255, 100);
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+            }}
+        """)
+        
+        # 名前を更新
+        self.text_label.setText(str(self.name))
+        
+    def mousePressEvent(self, event):
+        """マウスプレスイベント"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_start_position = event.position().toPoint()
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.show_context_menu(event.globalPosition().toPoint())
+            
+    def mouseMoveEvent(self, event):
+        """マウス移動イベント（ドラッグ処理）"""
+        if (event.buttons() & Qt.MouseButton.LeftButton and 
+            self.drag_start_position is not None):
+            
+            # ドラッグ距離をチェック
+            distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
+            if distance >= QApplication.startDragDistance():
+                # ウィンドウを移動
+                self.move(self.mapToGlobal(event.position().toPoint() - self.drag_start_position))
+                
+    def mouseReleaseEvent(self, event):
+        """マウスリリースイベント"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.drag_start_position is not None:
+                # ドラッグ距離をチェック
+                distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
+                if distance < QApplication.startDragDistance():
+                    # クリックとして処理
+                    self.clicked.emit(self)
+                else:
+                    # ドラッグ終了として処理
+                    self.position_changed.emit()
+                    
+                self.drag_start_position = None
+                
+    def show_context_menu(self, position):
+        """コンテキストメニューを表示"""
+        menu = QMenu(self)
+        
+        # 名前変更
+        rename_action = QAction("名前を変更", self)
+        rename_action.triggered.connect(self.rename_group)
+        menu.addAction(rename_action)
+        
+        menu.addSeparator()
+        
+        # アイテムをクリア
+        clear_action = QAction("アイテムをクリア", self)
+        clear_action.triggered.connect(self.clear_items)
+        menu.addAction(clear_action)
+        
+        # グループを削除
+        delete_action = QAction("グループを削除", self)
+        delete_action.triggered.connect(self.delete_group)
+        menu.addAction(delete_action)
+        
+        menu.exec(position)
+        
+    def rename_group(self):
+        """グループ名を変更"""
+        text, ok = QInputDialog.getText(
+            self, "グループ名変更", "新しい名前:", text=self.name
+        )
+        if ok and text.strip():
+            self.name = text.strip()
+            self.update_display()
+            self.items_changed.emit()
+            
+    def clear_items(self):
+        """アイテムをクリア"""
+        reply = QMessageBox.question(
+            self, "確認", "このグループのアイテムをすべて削除しますか？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.items.clear()
+            self.update_display()
+            self.items_changed.emit()
+            
+    def delete_group(self):
+        """グループを削除"""
+        reply = QMessageBox.question(
+            self, "確認", f"グループ '{self.name}' を削除しますか？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.close()
+            self.deleteLater()
+            
+    def dragEnterEvent(self, event):
+        """ドラッグエンターイベント"""
+        if event.mimeData().hasUrls():
+            # ファイルやフォルダのドロップを受け入れ
+            event.acceptProposedAction()
+            self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
+        else:
+            event.ignore()
+            
+    def dragLeaveEvent(self, event):
+        """ドラッグリーブイベント"""
+        self.setStyleSheet("")
+        
+    def dropEvent(self, event):
+        """ドロップイベント"""
+        self.setStyleSheet("")
+        
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                file_path = url.toLocalFile()
+                if file_path:
+                    self.add_item(file_path)
+                    
+            event.acceptProposedAction()
+            self.items_changed.emit()
+        else:
+            event.ignore()
+            
+    def add_item(self, file_path):
+        """アイテムを追加"""
+        # 既に存在するかチェック
+        for item in self.items:
+            if item['path'] == file_path:
+                return  # 重複なので追加しない
+                
+        # アイテム情報を作成
+        item_info = {
+            'path': file_path,
+            'name': os.path.basename(file_path),
+            'type': 'folder' if os.path.isdir(file_path) else 'file'
+        }
+        
+        self.items.append(item_info)
+        self.update_display()
+        
+    def remove_item(self, item_path):
+        """アイテムを削除"""
+        self.items = [item for item in self.items if item['path'] != item_path]
+        self.update_display()
+        self.items_changed.emit()
