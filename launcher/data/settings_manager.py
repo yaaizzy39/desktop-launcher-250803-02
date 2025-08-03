@@ -29,13 +29,7 @@ class SettingsManager:
             },
             'behavior': {
                 'startup_with_windows': False,
-                'minimize_to_tray': True,
-                'enable_hotkey': False,
-                'show_hotkey': 'Ctrl+Alt+L',
-                'new_group_hotkey': 'Ctrl+Alt+N',
-                'confirm_before_add': False,
-                'auto_detect_type': True,
-                'max_items_per_group': 20
+                'minimize_to_tray': True
             },
             'advanced': {
                 'auto_backup': True,

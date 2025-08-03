@@ -8,10 +8,10 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QGroupBox, QCheckBox, QSpinBox, QSlider, QLabel,
                             QPushButton, QColorDialog, QComboBox, QLineEdit,
                             QFileDialog, QMessageBox, QFormLayout, QSpacerItem,
-                            QSizePolicy, QFrame, QScrollArea, QKeySequenceEdit,
+                            QSizePolicy, QFrame, QScrollArea,
                             QTextEdit, QDialogButtonBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths
-from PyQt6.QtGui import QFont, QColor, QPalette, QKeySequence
+from PyQt6.QtGui import QFont, QColor, QPalette
 from data.settings_manager import SettingsManager
 
 
@@ -152,44 +152,6 @@ class BehaviorTab(QWidget):
         startup_group.setLayout(startup_layout)
         layout.addWidget(startup_group)
         
-        # ホットキー設定
-        hotkey_group = QGroupBox("ホットキー設定")
-        hotkey_layout = QFormLayout()
-        
-        self.enable_hotkey = QCheckBox("グローバルホットキーを有効にする")
-        self.enable_hotkey.stateChanged.connect(self.settings_changed.emit)
-        hotkey_layout.addRow(self.enable_hotkey)
-        
-        self.show_hotkey = QKeySequenceEdit()
-        self.show_hotkey.keySequenceChanged.connect(self.settings_changed.emit)
-        hotkey_layout.addRow("表示/非表示:", self.show_hotkey)
-        
-        self.new_group_hotkey = QKeySequenceEdit()
-        self.new_group_hotkey.keySequenceChanged.connect(self.settings_changed.emit)
-        hotkey_layout.addRow("新規グループ作成:", self.new_group_hotkey)
-        
-        hotkey_group.setLayout(hotkey_layout)
-        layout.addWidget(hotkey_group)
-        
-        # ドラッグ&ドロップ設定
-        dnd_group = QGroupBox("ドラッグ&ドロップ設定")
-        dnd_layout = QFormLayout()
-        
-        self.confirm_before_add = QCheckBox("アイテム追加前に確認する")
-        self.confirm_before_add.stateChanged.connect(self.settings_changed.emit)
-        dnd_layout.addRow(self.confirm_before_add)
-        
-        self.auto_detect_type = QCheckBox("ファイルタイプを自動判別")
-        self.auto_detect_type.stateChanged.connect(self.settings_changed.emit)
-        dnd_layout.addRow(self.auto_detect_type)
-        
-        self.max_items_per_group = QSpinBox()
-        self.max_items_per_group.setRange(5, 100)
-        self.max_items_per_group.valueChanged.connect(self.settings_changed.emit)
-        dnd_layout.addRow("グループ当たりの最大アイテム数:", self.max_items_per_group)
-        
-        dnd_group.setLayout(dnd_layout)
-        layout.addWidget(dnd_group)
         
         layout.addStretch()
         self.setLayout(layout)
@@ -200,29 +162,12 @@ class BehaviorTab(QWidget):
         
         self.startup_with_windows.setChecked(settings.get('startup_with_windows', False))
         self.minimize_to_tray.setChecked(settings.get('minimize_to_tray', True))
-        self.enable_hotkey.setChecked(settings.get('enable_hotkey', False))
-        
-        show_hotkey = settings.get('show_hotkey', 'Ctrl+Alt+L')
-        self.show_hotkey.setKeySequence(QKeySequence(show_hotkey))
-        
-        new_group_hotkey = settings.get('new_group_hotkey', 'Ctrl+Alt+N')
-        self.new_group_hotkey.setKeySequence(QKeySequence(new_group_hotkey))
-        
-        self.confirm_before_add.setChecked(settings.get('confirm_before_add', False))
-        self.auto_detect_type.setChecked(settings.get('auto_detect_type', True))
-        self.max_items_per_group.setValue(settings.get('max_items_per_group', 20))
         
     def get_settings(self):
         """現在の設定を取得"""
         return {
             'startup_with_windows': self.startup_with_windows.isChecked(),
-            'minimize_to_tray': self.minimize_to_tray.isChecked(),
-            'enable_hotkey': self.enable_hotkey.isChecked(),
-            'show_hotkey': self.show_hotkey.keySequence().toString(),
-            'new_group_hotkey': self.new_group_hotkey.keySequence().toString(),
-            'confirm_before_add': self.confirm_before_add.isChecked(),
-            'auto_detect_type': self.auto_detect_type.isChecked(),
-            'max_items_per_group': self.max_items_per_group.value()
+            'minimize_to_tray': self.minimize_to_tray.isChecked()
         }
 
 
@@ -505,8 +450,6 @@ class SettingsWindow(QWidget):
             
             self.changes_pending = False
             self.apply_btn.setEnabled(False)
-            
-            QMessageBox.information(self, "成功", "設定が適用されました。")
             
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定の適用に失敗しました:\n{str(e)}")
