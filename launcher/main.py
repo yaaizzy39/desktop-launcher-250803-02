@@ -125,14 +125,6 @@ class LauncherApp(QApplication):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()
         
-        # トレイアイコンのメッセージ
-        self.tray_icon.showMessage(
-            "Desktop Launcher",
-            "ランチャーアプリが起動しました\n右クリックでメニューを表示",
-            QSystemTrayIcon.MessageIcon.Information,
-            3000
-        )
-        
     def load_groups(self):
         """保存されたグループを読み込み"""
         groups_data = self.data_manager.load_groups()
@@ -481,21 +473,8 @@ class LauncherApp(QApplication):
                         menu.insertAction(menu.actions()[0], test_action)
                         menu.insertSeparator(menu.actions()[1])
                     
-                    # システムトレイメッセージ
-                    self.tray_icon.showMessage(
-                        "グローバルホットキー登録", 
-                        f"グローバルホットキー '{hotkey_str}' が登録されました",
-                        QSystemTrayIcon.MessageIcon.Information,
-                        3000
-                    )
                 else:
                     print(f"グローバルホットキー登録失敗: {hotkey_str}")
-                    self.tray_icon.showMessage(
-                        "ホットキー登録失敗", 
-                        f"ホットキー '{hotkey_str}' の登録に失敗しました\n他のアプリが使用している可能性があります",
-                        QSystemTrayIcon.MessageIcon.Warning,
-                        4000
-                    )
             else:
                 print(f"ホットキー解析失敗: {hotkey_str}")
                 
@@ -611,14 +590,6 @@ class LauncherApp(QApplication):
                 self.toggle_tray_action.setText("アイコンを表示")
                 
             print(f"アイコン表示状態: {'表示' if self.icons_visible else '非表示'}")
-            
-            # 確認用のシステムトレイメッセージ
-            self.tray_icon.showMessage(
-                "表示切り替え", 
-                f"アイコンを{'表示' if self.icons_visible else '非表示'}しました",
-                QSystemTrayIcon.MessageIcon.Information,
-                2000
-            )
             
         except Exception as e:
             print(f"表示切り替えエラー: {e}")
