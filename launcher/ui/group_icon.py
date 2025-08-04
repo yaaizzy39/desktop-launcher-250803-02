@@ -506,6 +506,17 @@ class GroupIcon(QWidget):
             # アイコンの右側にリストを配置
             icon_pos = self.pos()
             icon_size = self.size()
-            list_x = icon_pos.x() + icon_size.width() + 10  # アイコンの右側に10px空けて配置
+            # アイコン右端からリストの視覚的コンテンツまで一定距離を保つ
+            # アイコンサイズに応じて動的にオフセットを調整
+            visual_gap = 3  # アイコン右端からリストの視覚的コンテンツまでの目標距離
+            
+            # アイコンサイズに基づく基本オフセット + 固定マージン
+            base_offset = 2   # 基本オフセット（50pxでの隙間をさらに広げる）
+            size_factor = 0.30  # アイコンサイズに応じた調整係数（150pxはそのまま）
+            window_left_offset = base_offset + (icon_size.width() * size_factor)
+            
+            target_gap = visual_gap - window_left_offset  # ウィンドウ位置調整
+            
+            list_x = int(icon_pos.x() + icon_size.width() + target_gap)  # 整数に変換
             list_y = icon_pos.y()
             self.list_window.move(list_x, list_y)

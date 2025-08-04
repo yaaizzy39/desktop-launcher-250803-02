@@ -229,12 +229,12 @@ class ItemListWindow(QWidget):
         
     def setup_ui(self):
         """UI設定"""
-        self.setFixedSize(300, 400)
+        self.setFixedSize(280, 380)  # サイズを少し小さく
         
-        # メインレイアウト
+        # メインレイアウト - 左マージンをさらに削減
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(0, 8, 8, 8)  # 左マージンを0pxに、他も少し削減
+        main_layout.setSpacing(3)
         
         # ヘッダー
         header_frame = QFrame()
@@ -248,7 +248,7 @@ class ItemListWindow(QWidget):
         header_frame.setFixedHeight(40)
         
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(10, 5, 10, 5)
+        header_layout.setContentsMargins(6, 5, 8, 5)  # 左マージンを削減
         
         # タイトル（ダブルクリック可能）
         self.title_label = QLabel(f"📁 {str(self.group_icon.name)}")
@@ -288,6 +288,7 @@ class ItemListWindow(QWidget):
                 background-color: rgba(255, 255, 255, 200);
                 border-radius: 8px;
                 border: 1px solid rgba(200, 200, 200, 150);
+                margin-left: 0px;
             }
             QScrollBar:vertical {
                 background-color: rgba(200, 200, 200, 100);
@@ -301,11 +302,11 @@ class ItemListWindow(QWidget):
             }
         """)
         
-        # アイテムコンテナ
+        # アイテムコンテナ - マージンをさらに削減
         self.items_widget = QWidget()
         self.items_layout = QVBoxLayout()
-        self.items_layout.setContentsMargins(5, 5, 5, 5)
-        self.items_layout.setSpacing(2)
+        self.items_layout.setContentsMargins(2, 3, 3, 3)  # 左マージンを大幅削減
+        self.items_layout.setSpacing(1)
         self.items_layout.addStretch()
         self.items_widget.setLayout(self.items_layout)
         
@@ -316,6 +317,14 @@ class ItemListWindow(QWidget):
         main_layout.addWidget(scroll_area)
         
         self.setLayout(main_layout)
+        
+        # ウィンドウ全体のスタイル調整 - 左端の視覚的境界を最小化
+        self.setStyleSheet("""
+            QWidget {
+                margin-left: 0px;
+                padding-left: 0px;
+            }
+        """)
         
         # 初期アイテム表示
         self.refresh_items()

@@ -275,19 +275,34 @@ class LauncherApp(QApplication):
         window_width = window.width()
         window_height = window.height()
         
-        # デフォルトの配置（右側）
-        default_x = icon_pos.x() + icon_size.width() + 10
+        # アイコン右端からリストの視覚的コンテンツまで一定距離を保つ
+        # アイコンサイズに応じて動的にオフセットを調整
+        visual_gap = 3  # アイコン右端からリストの視覚的コンテンツまでの目標距離
+        
+        # アイコンサイズに基づく基本オフセット + 固定マージン
+        base_offset = 2   # 基本オフセット（50pxでの隙間をさらに広げる）
+        size_factor = 0.30  # アイコンサイズに応じた調整係数（150pxはそのまま）
+        window_left_offset = base_offset + (icon_size.width() * size_factor)
+        
+        target_gap = visual_gap - window_left_offset  # ウィンドウ位置調整
+        
+        default_x = int(icon_pos.x() + icon_size.width() + target_gap)  # 整数に変換
         default_y = icon_pos.y()
+        
+        print(f"🔄 NEW CODE: SIZE:{icon_size.width()}px BASE:{base_offset} FACTOR:{size_factor} OFFSET:{window_left_offset:.1f}px GAP:{target_gap:.1f}px -> X:{default_x}")
         
         # 水平位置の調整
         if default_x + window_width > screen_x + screen_width:
             # 右側にはみ出る場合は左側に配置
-            x = icon_pos.x() - window_width - 10
+            x = icon_pos.x() - window_width - 2
+            print(f"右側はみ出し -> 左側配置: {x}")
             # 左側にもはみ出る場合は画面内に収まる位置に調整
             if x < screen_x:
                 x = max(screen_x, icon_pos.x() + icon_size.width() // 2 - window_width // 2)
+                print(f"左側もはみ出し -> 中央配置: {x}")
         else:
             x = default_x
+            print(f"通常配置: {x}")
             
         # 垂直位置の調整
         if default_y + window_height > screen_y + screen_height:
@@ -300,11 +315,13 @@ class LauncherApp(QApplication):
             y = default_y
             
         # 最終的に画面境界内に収める
-        x = max(screen_x, min(x, screen_x + screen_width - window_width))
-        y = max(screen_y, min(y, screen_y + screen_height - window_height))
+        final_x = max(screen_x, min(x, screen_x + screen_width - window_width))
+        final_y = max(screen_y, min(y, screen_y + screen_height - window_height))
+        
+        print(f"FINAL -> X:{final_x} (調整:{'YES' if final_x != default_x else 'NO'})")
         
         # ウィンドウを配置
-        window.move(x, y)
+        window.move(final_x, final_y)
         
     def save_groups(self):
         """グループデータを保存"""
