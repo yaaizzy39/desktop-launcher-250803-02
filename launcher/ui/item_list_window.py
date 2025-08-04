@@ -311,32 +311,9 @@ class ItemListWindow(QWidget):
         
         scroll_area.setWidget(self.items_widget)
         
-        # フッター
-        footer_frame = QFrame()
-        footer_frame.setStyleSheet("""
-            QFrame {
-                background-color: rgba(240, 240, 240, 200);
-                border-radius: 8px;
-                border: 1px solid rgba(200, 200, 200, 150);
-            }
-        """)
-        footer_frame.setFixedHeight(30)
-        
-        footer_layout = QHBoxLayout()
-        footer_layout.setContentsMargins(10, 5, 10, 5)
-        
-        info_label = QLabel("アイテムをクリックして起動 | ドラッグ&ドロップで追加")
-        info_label.setFont(QFont("Arial", 8))
-        info_label.setStyleSheet("color: #666;")
-        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        footer_layout.addWidget(info_label)
-        footer_frame.setLayout(footer_layout)
-        
         # レイアウト構成
         main_layout.addWidget(header_frame)
         main_layout.addWidget(scroll_area)
-        main_layout.addWidget(footer_frame)
         
         self.setLayout(main_layout)
         
