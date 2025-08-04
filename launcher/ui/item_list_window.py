@@ -8,8 +8,8 @@ import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
                             QMessageBox, QMenu)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl
-from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl, QPoint
+from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag, QPainter
 from ui.icon_utils import icon_extractor
 
 
@@ -18,11 +18,13 @@ class ItemWidget(QFrame):
     
     launch_requested = pyqtSignal(str)  # 起動要求シグナル
     remove_requested = pyqtSignal(str)  # 削除要求シグナル
+    reorder_requested = pyqtSignal(object, int)  # 並び替え要求シグナル (item_widget, new_index)
     
     def __init__(self, item_info):
         super().__init__()
         self.item_info = item_info
         self.drag_start_position = None
+        self.is_reorder_drag = False  # 並び替えドラッグかどうか
         self.setup_ui()
         
     def setup_ui(self):
@@ -152,8 +154,15 @@ class ItemWidget(QFrame):
             # ドラッグ距離をチェック
             distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
             if distance >= QApplication.startDragDistance():
-                # ドラッグ操作を開始
-                self.start_drag()
+                # Shiftキーが押されている場合は並び替えドラッグ
+                modifiers = QApplication.keyboardModifiers()
+                if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                    self.is_reorder_drag = True
+                    self.start_reorder_drag()
+                else:
+                    self.is_reorder_drag = False
+                    # 通常のドラッグ操作を開始
+                    self.start_drag()
                 
     def mouseReleaseEvent(self, event):
         """マウスリリースイベント"""
@@ -182,6 +191,31 @@ class ItemWidget(QFrame):
         
         # ドラッグ実行
         drop_action = drag.exec(Qt.DropAction.MoveAction | Qt.DropAction.CopyAction)
+        
+    def start_reorder_drag(self):
+        """並び替えドラッグ操作を開始"""
+        # 親ウィンドウに並び替えドラッグ開始を通知
+        parent_list = self.parent()
+        while parent_list and not isinstance(parent_list, ItemListWindow):
+            parent_list = parent_list.parent()
+        
+        if parent_list:
+            parent_list.reorder_drag_active = True
+            
+        drag = QDrag(self)
+        mime_data = QMimeData()
+        
+        # 並び替え用のカスタムデータを設定
+        mime_data.setData("application/x-launcher-reorder", str(id(self)).encode('utf-8'))
+        
+        drag.setMimeData(mime_data)
+        
+        # ドラッグ実行
+        drop_action = drag.exec(Qt.DropAction.MoveAction)
+        
+        # ドラッグ終了後にフラグを解除
+        if parent_list:
+            parent_list.reorder_drag_active = False
         
     def show_context_menu(self, position):
         """右クリックコンテキストメニューを表示"""
@@ -251,6 +285,7 @@ class ItemListWindow(QWidget):
         self.mouse_left_after_enter = False
         self.is_pinned = False  # 固定表示モード
         self.dialog_showing = False  # ダイアログ表示中フラグ
+        self.reorder_drag_active = False  # 並び替えドラッグ中フラグ
         
         # 遅延非表示用タイマー
         self.hide_timer = QTimer()
@@ -403,6 +438,7 @@ class ItemListWindow(QWidget):
             item_widget = ItemWidget(item_info)
             item_widget.launch_requested.connect(self.launch_item)
             item_widget.remove_requested.connect(self.remove_item)
+            item_widget.reorder_requested.connect(self.reorder_item)
             self.items_layout.insertWidget(self.items_layout.count() - 1, item_widget)
             
         # アイテムがない場合のメッセージ
@@ -420,6 +456,34 @@ class ItemListWindow(QWidget):
             
         # ウィンドウサイズを調整
         self.adjust_window_height()
+        
+    def reorder_item(self, item_widget, new_index):
+        """アイテムの並び順を変更"""
+        try:
+            # 現在のアイテムのインデックスを取得
+            current_index = -1
+            for i, item_info in enumerate(self.group_icon.items):
+                if item_info['path'] == item_widget.item_info['path']:
+                    current_index = i
+                    break
+                    
+            if current_index == -1:
+                return  # アイテムが見つからない
+                
+            # アイテムを移動
+            item_info = self.group_icon.items.pop(current_index)
+            self.group_icon.items.insert(new_index, item_info)
+            
+            # UIを更新
+            self.refresh_items()
+            
+            # データを保存
+            self.group_icon.items_changed.emit()
+            
+            print(f"アイテム並び替え: {current_index} -> {new_index}")
+            
+        except Exception as e:
+            print(f"並び替えエラー: {e}")
             
     def launch_item(self, item_path):
         """アイテムを起動"""
@@ -506,7 +570,8 @@ class ItemListWindow(QWidget):
         
     def leaveEvent(self, event):
         """マウスがウィンドウから出た"""
-        if self.mouse_entered and not self.is_pinned and not self.dialog_showing:  # 固定モードでない、かつダイアログ表示中でない場合のみ
+        if (self.mouse_entered and not self.is_pinned and 
+            not self.dialog_showing and not self.reorder_drag_active):  # 並び替えドラッグ中でない場合のみ
             self.mouse_left_after_enter = True
             # 少し遅延してから隠す（誤操作防止）
             self.hide_timer.start(300)  # 300ms後に隠す
@@ -514,8 +579,8 @@ class ItemListWindow(QWidget):
         
     def delayed_hide(self):
         """遅延非表示処理"""
-        # 固定モードまたはダイアログ表示中の場合は隠さない
-        if self.is_pinned or self.dialog_showing:
+        # 固定モード、ダイアログ表示中、または並び替えドラッグ中の場合は隠さない
+        if self.is_pinned or self.dialog_showing or self.reorder_drag_active:
             return
         # マウスがウィンドウ内に戻ってきていないかチェック
         if not self.underMouse() and self.mouse_left_after_enter:
@@ -523,8 +588,9 @@ class ItemListWindow(QWidget):
             
     def focusOutEvent(self, event):
         """フォーカスを失ったら隠す"""
-        # 固定モード、マウスがウィンドウ内、またはダイアログ表示中は隠さない
-        if not self.is_pinned and not self.underMouse() and not self.dialog_showing:
+        # 固定モード、マウスがウィンドウ内、ダイアログ表示中、または並び替えドラッグ中は隠さない
+        if (not self.is_pinned and not self.underMouse() and 
+            not self.dialog_showing and not self.reorder_drag_active):
             self.hide()
         super().focusOutEvent(event)
         
@@ -560,10 +626,15 @@ class ItemListWindow(QWidget):
             
     def dragEnterEvent(self, event):
         """ドラッグエンターイベント"""
-        if event.mimeData().hasFormat("application/x-launcher-item") or event.mimeData().hasUrls():
+        if (event.mimeData().hasFormat("application/x-launcher-item") or 
+            event.mimeData().hasFormat("application/x-launcher-reorder") or 
+            event.mimeData().hasUrls()):
             event.acceptProposedAction()
             # ドロップ可能な視覚フィードバック
-            self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")
+            if event.mimeData().hasFormat("application/x-launcher-reorder"):
+                self.setStyleSheet("QWidget { border: 2px dashed #ff9900; }")  # 並び替えは橙色
+            else:
+                self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")  # 通常は緑色
         else:
             event.ignore()
             
@@ -575,8 +646,29 @@ class ItemListWindow(QWidget):
         """ドロップイベント"""
         self.setStyleSheet("")
         
+        # 並び替えドロップの場合
+        if event.mimeData().hasFormat("application/x-launcher-reorder"):
+            widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
+            
+            # ドロップ位置からインデックスを計算
+            drop_y = event.position().y()
+            target_index = self.calculate_drop_index(drop_y)
+            
+            # ドラッグされたウィジェットを見つける
+            dragged_widget = None
+            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                widget = self.items_layout.itemAt(i).widget()
+                if widget and str(id(widget)) == widget_id:
+                    dragged_widget = widget
+                    break
+                    
+            if dragged_widget:
+                self.reorder_item(dragged_widget, target_index)
+                
+            event.acceptProposedAction()
+            
         # リスト間移動の場合
-        if event.mimeData().hasFormat("application/x-launcher-item"):
+        elif event.mimeData().hasFormat("application/x-launcher-item"):
             item_path = event.mimeData().data("application/x-launcher-item").data().decode('utf-8')
             
             # 既に存在するかチェック
@@ -637,3 +729,29 @@ class ItemListWindow(QWidget):
             
         except Exception as e:
             print(f"ウィンドウ高さ調整エラー: {e}")
+            
+    def calculate_drop_index(self, drop_y):
+        """ドロップ位置からアイテムのインデックスを計算"""
+        try:
+            # ヘッダーの高さを考慮
+            header_height = 48  # ヘッダー高さ + マージン
+            
+            # スクロールエリア内でのY位置を計算
+            if drop_y < header_height:
+                return 0
+                
+            relative_y = drop_y - header_height
+            
+            # アイテムの高さで割って位置を計算
+            index = int(relative_y / self.item_height)
+            
+            # アイテム数でクランプ
+            max_index = len(self.group_icon.items)
+            index = max(0, min(index, max_index))
+            
+            print(f"ドロップ位置計算: Y={drop_y}, 相対Y={relative_y}, インデックス={index}")
+            return index
+            
+        except Exception as e:
+            print(f"ドロップ位置計算エラー: {e}")
+            return 0
