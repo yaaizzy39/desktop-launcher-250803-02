@@ -78,23 +78,7 @@ class ItemWidget(QFrame):
         path_label.setFont(QFont("Arial", 8))
         path_label.setStyleSheet("color: #666;")
         
-        # 削除ボタン
-        remove_btn = QPushButton("×")
-        remove_btn.setFixedSize(20, 20)
-        remove_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 100, 100, 200);
-                border: none;
-                border-radius: 10px;
-                color: white;
-                font-weight: bold;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 50, 50, 255);
-            }
-        """)
-        remove_btn.clicked.connect(lambda: self.remove_requested.emit(self.item_info['path']))
+        # 削除ボタンを廃止（右クリックメニューで削除に変更）
         
         # レイアウト構成
         info_layout = QVBoxLayout()
@@ -106,9 +90,12 @@ class ItemWidget(QFrame):
         layout.addWidget(icon_label)
         layout.addLayout(info_layout)
         layout.addStretch()
-        layout.addWidget(remove_btn)
         
         self.setLayout(layout)
+        
+        # 右クリックメニューを有効にする
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
         
     def _set_default_icon(self, icon_label):
         """デフォルトアイコンを設定"""
@@ -147,6 +134,14 @@ class ItemWidget(QFrame):
         """マウスプレスイベント"""
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_start_position = event.position().toPoint()
+        elif event.button() == Qt.MouseButton.RightButton:
+            # 右クリック時はリストが隠れないようにフラグを設定
+            parent_list = self.parent()
+            while parent_list and not isinstance(parent_list, ItemListWindow):
+                parent_list = parent_list.parent()
+            
+            if parent_list:
+                parent_list.dialog_showing = True
         super().mousePressEvent(event)
         
     def mouseMoveEvent(self, event):
@@ -187,6 +182,63 @@ class ItemWidget(QFrame):
         
         # ドラッグ実行
         drop_action = drag.exec(Qt.DropAction.MoveAction | Qt.DropAction.CopyAction)
+        
+    def show_context_menu(self, position):
+        """右クリックコンテキストメニューを表示"""
+        # メニュー表示中はリストを隠さないようにフラグを設定
+        parent_list = self.parent()
+        while parent_list and not isinstance(parent_list, ItemListWindow):
+            parent_list = parent_list.parent()
+        
+        if parent_list:
+            parent_list.dialog_showing = True
+        
+        menu = QMenu()
+        menu.setParent(None)  # 独立したメニュー
+        
+        # メニューのスタイルを調整
+        menu.setStyleSheet("""
+            QMenu {
+                font-size: 12px;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                min-width: 100px;
+            }
+            QMenu::item:selected {
+                background-color: #4a90e2;
+                color: white;
+            }
+        """)
+        
+        # 削除アクション
+        delete_action = QAction("削除", menu)
+        delete_action.triggered.connect(lambda: self.remove_requested.emit(self.item_info['path']))
+        menu.addAction(delete_action)
+        
+        # アイテム情報表示アクション
+        info_action = QAction("プロパティ", menu)
+        info_action.triggered.connect(self.show_item_info)
+        menu.addAction(info_action)
+        
+        # メニューを表示
+        global_pos = self.mapToGlobal(position)
+        action = menu.exec(global_pos)
+        
+        # メニュー終了後にフラグを解除（選択・キャンセル問わず）
+        if parent_list:
+            parent_list.dialog_showing = False
+        
+    def show_item_info(self):
+        """アイテム情報を表示"""
+        from PyQt6.QtWidgets import QMessageBox
+        info_text = f"""
+アイテム名: {self.item_info['name']}
+パス: {self.item_info['path']}
+タイプ: {self.item_info['type']}
+        """
+        QMessageBox.information(self, "アイテム情報", info_text.strip())
 
 
 class ItemListWindow(QWidget):
@@ -198,6 +250,7 @@ class ItemListWindow(QWidget):
         self.mouse_entered = False
         self.mouse_left_after_enter = False
         self.is_pinned = False  # 固定表示モード
+        self.dialog_showing = False  # ダイアログ表示中フラグ
         
         # 遅延非表示用タイマー
         self.hide_timer = QTimer()
@@ -229,7 +282,7 @@ class ItemListWindow(QWidget):
         
     def setup_ui(self):
         """UI設定"""
-        self.setFixedSize(280, 380)  # サイズを少し小さく
+        self.setFixedSize(300, 380)  # 削除ボタン廃止により元のサイズに戻す
         
         # メインレイアウト - 左マージンをさらに削減
         main_layout = QVBoxLayout()
@@ -384,15 +437,48 @@ class ItemListWindow(QWidget):
             
     def remove_item(self, item_path):
         """アイテムを削除"""
-        reply = QMessageBox.question(
-            self, "確認", 
-            f"このアイテムをリストから削除しますか?\n{os.path.basename(item_path)}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
+        # ダイアログ表示フラグを設定（全ての自動非表示を無効化）
+        self.dialog_showing = True
         
-        if reply == QMessageBox.StandardButton.Yes:
+        # カスタム確認ダイアログを作成（ボタンを大きくするため）
+        msg_box = QMessageBox()
+        msg_box.setParent(None)  # 親を指定しない（独立したダイアログ）
+        msg_box.setWindowTitle("確認")
+        msg_box.setText(f"このアイテムをリストから削除しますか?\n{os.path.basename(item_path)}")
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        
+        # ダイアログを常に最前面に表示
+        msg_box.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
+        
+        # ボタンを大きくするためのスタイルシート
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                font-size: 12px;
+                min-width: 300px;
+            }
+            QMessageBox QPushButton {
+                font-size: 14px;
+                padding: 8px 16px;
+                min-width: 80px;
+                min-height: 30px;
+            }
+        """)
+        
+        yes_button = msg_box.addButton("はい", QMessageBox.ButtonRole.YesRole)
+        no_button = msg_box.addButton("いいえ", QMessageBox.ButtonRole.NoRole)
+        msg_box.setDefaultButton(no_button)
+        
+        # ダイアログを表示
+        result = msg_box.exec()
+        
+        # ダイアログ表示フラグを解除
+        self.dialog_showing = False
+        
+        # 結果をチェック
+        if msg_box.clickedButton() == yes_button:
             self.group_icon.remove_item(item_path)
+            # 削除後にリストを再表示・更新
+            self.refresh_items()
             
     def show(self):
         """ウィンドウを表示"""
@@ -410,7 +496,7 @@ class ItemListWindow(QWidget):
         
     def leaveEvent(self, event):
         """マウスがウィンドウから出た"""
-        if self.mouse_entered and not self.is_pinned:  # 固定モードでない場合のみ
+        if self.mouse_entered and not self.is_pinned and not self.dialog_showing:  # 固定モードでない、かつダイアログ表示中でない場合のみ
             self.mouse_left_after_enter = True
             # 少し遅延してから隠す（誤操作防止）
             self.hide_timer.start(300)  # 300ms後に隠す
@@ -418,8 +504,8 @@ class ItemListWindow(QWidget):
         
     def delayed_hide(self):
         """遅延非表示処理"""
-        # 固定モードの場合は隠さない
-        if self.is_pinned:
+        # 固定モードまたはダイアログ表示中の場合は隠さない
+        if self.is_pinned or self.dialog_showing:
             return
         # マウスがウィンドウ内に戻ってきていないかチェック
         if not self.underMouse() and self.mouse_left_after_enter:
@@ -427,8 +513,8 @@ class ItemListWindow(QWidget):
             
     def focusOutEvent(self, event):
         """フォーカスを失ったら隠す"""
-        # 固定モードまたはマウスがウィンドウ内にある場合は隠さない
-        if not self.is_pinned and not self.underMouse():
+        # 固定モード、マウスがウィンドウ内、またはダイアログ表示中は隠さない
+        if not self.is_pinned and not self.underMouse() and not self.dialog_showing:
             self.hide()
         super().focusOutEvent(event)
         
