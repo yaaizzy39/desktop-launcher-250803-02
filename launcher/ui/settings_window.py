@@ -41,7 +41,7 @@ class AppearanceTab(QWidget):
         self.icon_size_spin.setRange(50, 150)
         self.icon_size_spin.setSuffix(" px")
         self.icon_size_spin.valueChanged.connect(self.settings_changed.emit)
-        icon_layout.addRow("アイコンサイズ:", self.icon_size_spin)
+        icon_layout.addRow("アイコンサイズ (50-150px):", self.icon_size_spin)
         
         # 透明度
         self.opacity_slider = QSlider(Qt.Orientation.Horizontal)
