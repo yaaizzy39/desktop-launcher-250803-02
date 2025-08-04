@@ -282,7 +282,11 @@ class ItemListWindow(QWidget):
         
     def setup_ui(self):
         """UI設定"""
-        self.setFixedSize(300, 380)  # 削除ボタン廃止により元のサイズに戻す
+        # 初期サイズを設定（後で動的に調整される）
+        self.setFixedWidth(300)  # 幅は固定
+        self.min_height = 120    # 最小高さ（ヘッダー + 余白）
+        self.max_height = 600    # 最大高さ
+        self.item_height = 42    # アイテム1個あたりの高さ（アイテム高さ40px + 余白2px）
         
         # メインレイアウト - 左マージンをさらに削減
         main_layout = QVBoxLayout()
@@ -383,6 +387,9 @@ class ItemListWindow(QWidget):
         self.refresh_items()
         self.update_title_display()
         
+        # 初期サイズを調整
+        self.adjust_window_height()
+        
     def refresh_items(self):
         """アイテムリストを更新"""
         # 既存のアイテムウィジェットを削除
@@ -410,6 +417,9 @@ class ItemListWindow(QWidget):
                 }
             """)
             self.items_layout.insertWidget(0, empty_label)
+            
+        # ウィンドウサイズを調整
+        self.adjust_window_height()
             
     def launch_item(self, item_path):
         """アイテムを起動"""
@@ -589,6 +599,8 @@ class ItemListWindow(QWidget):
                 file_path = url.toLocalFile()
                 if file_path:
                     self.group_icon.add_item(file_path)
+            # ドロップ後にリストを更新（サイズ調整を含む）
+            self.refresh_items()
             event.acceptProposedAction()
         else:
             event.ignore()
@@ -601,3 +613,27 @@ class ItemListWindow(QWidget):
             for group_icon in app.group_icons:
                 if group_icon != self.group_icon:
                     group_icon.remove_item(item_path)
+                    
+    def adjust_window_height(self):
+        """アイテム数に応じてウィンドウの高さを調整"""
+        try:
+            # アイテム数を取得
+            item_count = len(self.group_icon.items)
+            
+            # アイテムがない場合は最小サイズ
+            if item_count == 0:
+                target_height = self.min_height
+            else:
+                # ヘッダー高さ（40px） + マージン（16px） + アイテム高さ × アイテム数 + 余白（20px）
+                target_height = 40 + 16 + (self.item_height * item_count) + 20
+                
+            # 最小・最大高さでクランプ
+            target_height = max(self.min_height, min(target_height, self.max_height))
+            
+            # ウィンドウサイズを設定
+            self.setFixedHeight(target_height)
+            
+            print(f"ウィンドウ高さ調整: アイテム数={item_count}, 高さ={target_height}px")
+            
+        except Exception as e:
+            print(f"ウィンドウ高さ調整エラー: {e}")
