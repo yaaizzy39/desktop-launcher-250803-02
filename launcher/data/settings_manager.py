@@ -32,6 +32,9 @@ class SettingsManager:
                 'startup_with_windows': False,
                 'minimize_to_tray': True
             },
+            'hotkey': {
+                'toggle_visibility': 'Ctrl+Alt+L'
+            },
             'advanced': {
                 'max_backups': 10
             }
@@ -108,6 +111,10 @@ class SettingsManager:
         """動作設定を取得"""
         return self.settings.get('behavior', {}).copy()
         
+    def get_hotkey_settings(self):
+        """ホットキー設定を取得"""
+        return self.settings.get('hotkey', {}).copy()
+        
     def get_advanced_settings(self):
         """高度な設定を取得"""
         return self.settings.get('advanced', {}).copy()
@@ -124,6 +131,11 @@ class SettingsManager:
             self.set_startup_with_windows(behavior_settings['startup_with_windows'])
             
         self.settings['behavior'].update(behavior_settings)
+        return self.save_all_settings()
+        
+    def save_hotkey_settings(self, hotkey_settings):
+        """ホットキー設定を保存"""
+        self.settings['hotkey'].update(hotkey_settings)
         return self.save_all_settings()
         
     def save_advanced_settings(self, advanced_settings):

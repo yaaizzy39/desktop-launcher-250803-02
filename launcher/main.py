@@ -7,17 +7,43 @@ Windows Desktop Launcher
 import sys
 import os
 import json
+import ctypes
+import ctypes.wintypes
 from PyQt6.QtWidgets import (QApplication, QSystemTrayIcon, QMenu, QWidget, 
                             QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                             QMainWindow, QMessageBox, QInputDialog)
-from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor, QAction
+from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal, QAbstractNativeEventFilter
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor, QAction, QKeySequence, QShortcut
+from PyQt6.QtWidgets import QWidget
 
 from ui.group_icon import GroupIcon
 from ui.item_list_window import ItemListWindow
 from ui.settings_window import SettingsWindow
 from data.data_manager import DataManager
 from data.settings_manager import SettingsManager
+
+# Windows API定数
+WM_HOTKEY = 0x0312
+MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+MOD_WIN = 0x0008
+
+class GlobalHotkeyFilter(QAbstractNativeEventFilter):
+    """グローバルホットキーのイベントフィルター"""
+    
+    def __init__(self, callback):
+        super().__init__()
+        self.callback = callback
+    
+    def nativeEventFilter(self, eventType, message):
+        if eventType == "windows_generic_MSG":
+            msg = ctypes.wintypes.MSG.from_address(message.__int__())
+            if msg.message == WM_HOTKEY:
+                if msg.wParam == 1:  # ホットキーID 1
+                    self.callback()
+                    return True, 0
+        return False, 0
 
 
 class LauncherApp(QApplication):
@@ -35,6 +61,10 @@ class LauncherApp(QApplication):
         self.group_icons = []
         self.item_list_windows = {}
         self.settings_window = None
+        self.icons_visible = True  # アイコンの表示状態
+        self.hotkey = None  # ホットキー
+        self.hotkey_id = 1  # グローバルホットキーID
+        self.hotkey_filter = None  # ホットキーフィルター
         
         # システムトレイ設定
         self.setup_system_tray()
@@ -44,6 +74,9 @@ class LauncherApp(QApplication):
         
         # 初期設定を適用
         self.apply_initial_settings()
+        
+        # ホットキーを設定
+        self.setup_hotkey()
         
     def setup_system_tray(self):
         """システムトレイアイコンを設定"""
@@ -73,6 +106,14 @@ class LauncherApp(QApplication):
         about_action = QAction("バージョン情報", self)
         about_action.triggered.connect(self.show_about)
         tray_menu.addAction(about_action)
+        
+        tray_menu.addSeparator()
+        
+        # アイコン表示/非表示アクション
+        toggle_action = QAction("アイコンを隠す", self)
+        toggle_action.triggered.connect(self.toggle_icons_visibility)
+        tray_menu.addAction(toggle_action)
+        self.toggle_tray_action = toggle_action  # 後でテキストを更新するために保存
         
         tray_menu.addSeparator()
         
@@ -312,6 +353,12 @@ class LauncherApp(QApplication):
             # 動作設定を適用
             behavior = settings.get('behavior', {})
             
+            # ホットキー設定を適用
+            hotkey = settings.get('hotkey', {})
+            if hotkey:
+                print(f"ホットキー設定を適用中: {hotkey}")
+                self.setup_hotkey()  # ホットキーを再設定
+            
             # その他の設定適用処理をここに追加
             print("設定が適用されました")
             
@@ -382,6 +429,9 @@ class LauncherApp(QApplication):
         
     def quit_application(self):
         """アプリケーションを終了"""
+        # ホットキーの登録を解除
+        self.unregister_hotkey()
+        
         # 設定ウィンドウを閉じる
         if self.settings_window:
             self.settings_window.close()
@@ -398,6 +448,182 @@ class LauncherApp(QApplication):
         
         # アプリケーション終了
         self.quit()
+    
+    def setup_hotkey(self):
+        """グローバルホットキーを設定"""
+        try:
+            # 既存のホットキーを削除
+            self.unregister_hotkey()
+            
+            # ホットキー設定を取得
+            hotkey_settings = self.settings_manager.get_hotkey_settings()
+            hotkey_str = hotkey_settings.get('toggle_visibility', 'Ctrl+Alt+L')
+            print(f"ホットキー設定取得: {hotkey_str}")
+            
+            # ホットキー文字列を解析
+            modifiers, vk_code = self.parse_hotkey_string(hotkey_str)
+            if modifiers is not None and vk_code is not None:
+                # グローバルホットキーを登録
+                success = self.register_global_hotkey(modifiers, vk_code)
+                if success:
+                    print(f"グローバルホットキー登録成功: {hotkey_str}")
+                    
+                    # システムトレイに右クリックメニューでテスト追加（既存のものがあれば削除）
+                    if hasattr(self, 'tray_icon'):
+                        menu = self.tray_icon.contextMenu()
+                        # 既存のテストアクションを削除
+                        for action in menu.actions():
+                            if action.text().startswith("テスト:"):
+                                menu.removeAction(action)
+                        
+                        test_action = QAction("テスト: アイコン切り替え", self)
+                        test_action.triggered.connect(self.toggle_icons_visibility)
+                        menu.insertAction(menu.actions()[0], test_action)
+                        menu.insertSeparator(menu.actions()[1])
+                    
+                    # システムトレイメッセージ
+                    self.tray_icon.showMessage(
+                        "グローバルホットキー登録", 
+                        f"グローバルホットキー '{hotkey_str}' が登録されました",
+                        QSystemTrayIcon.MessageIcon.Information,
+                        3000
+                    )
+                else:
+                    print(f"グローバルホットキー登録失敗: {hotkey_str}")
+                    self.tray_icon.showMessage(
+                        "ホットキー登録失敗", 
+                        f"ホットキー '{hotkey_str}' の登録に失敗しました\n他のアプリが使用している可能性があります",
+                        QSystemTrayIcon.MessageIcon.Warning,
+                        4000
+                    )
+            else:
+                print(f"ホットキー解析失敗: {hotkey_str}")
+                
+        except Exception as e:
+            print(f"ホットキー設定エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def parse_hotkey_string(self, hotkey_str):
+        """ホットキー文字列を解析してmodifiersとvk_codeを返す"""
+        try:
+            parts = hotkey_str.split('+')
+            modifiers = 0
+            vk_code = None
+            
+            for part in parts:
+                part = part.strip().lower()
+                if part == 'ctrl':
+                    modifiers |= MOD_CONTROL
+                elif part == 'alt':
+                    modifiers |= MOD_ALT
+                elif part == 'shift':
+                    modifiers |= MOD_SHIFT
+                elif part == 'win':
+                    modifiers |= MOD_WIN
+                else:
+                    # キーコードを取得
+                    if len(part) == 1 and part.isalpha():
+                        # A-Z
+                        vk_code = ord(part.upper())
+                    elif part.isdigit() and len(part) == 1:
+                        # 0-9
+                        vk_code = ord(part)
+                    else:
+                        print(f"未対応のキー: {part}")
+                        return None, None
+            
+            return modifiers, vk_code
+            
+        except Exception as e:
+            print(f"ホットキー解析エラー: {e}")
+            return None, None
+    
+    def register_global_hotkey(self, modifiers, vk_code):
+        """グローバルホットキーを登録"""
+        try:
+            # 既存のフィルターを削除
+            if self.hotkey_filter:
+                self.removeNativeEventFilter(self.hotkey_filter)
+            
+            # Windows APIでグローバルホットキーを登録
+            user32 = ctypes.windll.user32
+            # RegisterHotKeyを直接呼び出し
+            success = user32.RegisterHotKey(0, self.hotkey_id, modifiers, vk_code)
+            
+            if success:
+                # イベントフィルターを設定
+                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility)
+                self.installNativeEventFilter(self.hotkey_filter)
+                print(f"RegisterHotKey成功: modifiers={modifiers}, vk_code={vk_code}")
+                return True
+            else:
+                error = ctypes.windll.kernel32.GetLastError()
+                print(f"RegisterHotKey失敗. エラーコード: {error}")
+                return False
+                
+        except Exception as e:
+            print(f"グローバルホットキー登録エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def unregister_hotkey(self):
+        """ホットキーの登録を解除"""
+        try:
+            if self.hotkey_filter:
+                self.removeNativeEventFilter(self.hotkey_filter)
+                self.hotkey_filter = None
+            
+            # Windows APIでホットキーの登録を解除
+            user32 = ctypes.windll.user32
+            user32.UnregisterHotKey(0, self.hotkey_id)
+            print("ホットキー登録解除")
+            
+        except Exception as e:
+            print(f"ホットキー登録解除エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def toggle_icons_visibility(self):
+        """アイコンの表示/非表示を切り替え"""
+        try:
+            print("toggle_icons_visibility が呼び出されました")
+            self.icons_visible = not self.icons_visible
+            print(f"表示状態を変更: {self.icons_visible}")
+            
+            print(f"グループアイコン数: {len(self.group_icons)}")
+            for group_icon in self.group_icons:
+                print(f"グループ '{group_icon.name}' を {'表示' if self.icons_visible else '非表示'}")
+                if self.icons_visible:
+                    group_icon.show()
+                else:
+                    group_icon.hide()
+                    # リストウィンドウも隠す
+                    if group_icon in self.item_list_windows:
+                        print(f"リストウィンドウも非表示")
+                        self.item_list_windows[group_icon].hide()
+            
+            # システムトレイメニューのテキストを更新
+            if self.icons_visible:
+                self.toggle_tray_action.setText("アイコンを隠す")
+            else:
+                self.toggle_tray_action.setText("アイコンを表示")
+                
+            print(f"アイコン表示状態: {'表示' if self.icons_visible else '非表示'}")
+            
+            # 確認用のシステムトレイメッセージ
+            self.tray_icon.showMessage(
+                "表示切り替え", 
+                f"アイコンを{'表示' if self.icons_visible else '非表示'}しました",
+                QSystemTrayIcon.MessageIcon.Information,
+                2000
+            )
+            
+        except Exception as e:
+            print(f"表示切り替えエラー: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 def main():

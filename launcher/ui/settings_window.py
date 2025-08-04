@@ -9,10 +9,84 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QPushButton, QColorDialog, QComboBox, QLineEdit,
                             QFileDialog, QMessageBox, QFormLayout, QSpacerItem,
                             QSizePolicy, QFrame, QScrollArea,
-                            QTextEdit, QDialogButtonBox)
+                            QTextEdit, QDialogButtonBox, QKeySequenceEdit)
 from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtGui import QFont, QColor, QPalette, QKeySequence
 from data.settings_manager import SettingsManager
+
+
+class HotkeyTab(QWidget):
+    """ホットキー設定タブ"""
+    
+    settings_changed = pyqtSignal()
+    
+    def __init__(self, settings_manager):
+        super().__init__()
+        self.settings_manager = settings_manager
+        self.setup_ui()
+        self.load_settings()
+        
+    def setup_ui(self):
+        """UI設定"""
+        layout = QVBoxLayout()
+        layout.setSpacing(15)
+        
+        # ホットキー設定
+        hotkey_group = QGroupBox("ホットキー設定")
+        hotkey_layout = QFormLayout()
+        
+        # 表示/非表示切り替えホットキー
+        self.toggle_hotkey = QKeySequenceEdit()
+        self.toggle_hotkey.keySequenceChanged.connect(self.settings_changed.emit)
+        
+        # 説明ラベル
+        help_label = QLabel("アイコンの表示/非表示を切り替えるホットキーを設定します")
+        help_label.setStyleSheet("color: #666; font-size: 11px;")
+        
+        hotkey_layout.addRow("表示/非表示切り替え:", self.toggle_hotkey)
+        hotkey_layout.addRow("", help_label)
+        
+        hotkey_group.setLayout(hotkey_layout)
+        
+        # 推奨ホットキー
+        recommended_group = QGroupBox("推奨ホットキー")
+        recommended_layout = QVBoxLayout()
+        
+        recommended_text = QLabel("""
+推奨されるホットキーの組み合わせ：
+• Ctrl+Alt+L（Launcher）
+• Ctrl+Shift+D（Desktop）
+• Ctrl+Alt+H（Hide/Show）
+• Win+Shift+L
+
+他のアプリケーションと競合しないキーを選択してください。
+        """)
+        recommended_text.setStyleSheet("color: #555; font-size: 11px; padding: 10px;")
+        recommended_text.setWordWrap(True)
+        
+        recommended_layout.addWidget(recommended_text)
+        recommended_group.setLayout(recommended_layout)
+        
+        # レイアウト構成
+        layout.addWidget(hotkey_group)
+        layout.addWidget(recommended_group)
+        layout.addStretch()
+        
+        self.setLayout(layout)
+        
+    def load_settings(self):
+        """設定を読み込み"""
+        settings = self.settings_manager.get_hotkey_settings()
+        
+        # ホットキー設定
+        hotkey_str = settings.get('toggle_visibility', 'Ctrl+Alt+L')
+        self.toggle_hotkey.setKeySequence(QKeySequence(hotkey_str))
+        
+    def get_settings(self):
+        """現在の設定を取得"""
+        return {
+            'toggle_visibility': self.toggle_hotkey.keySequence().toString()
+        }
 
 
 class AppearanceTab(QWidget):
@@ -315,11 +389,13 @@ class SettingsWindow(QWidget):
         # 各タブを作成
         self.appearance_tab = AppearanceTab(self.settings_manager)
         self.behavior_tab = BehaviorTab(self.settings_manager)
+        self.hotkey_tab = HotkeyTab(self.settings_manager)
         self.advanced_tab = AdvancedTab(self.settings_manager)
         
         # タブを追加
         self.tab_widget.addTab(self.appearance_tab, "外観")
         self.tab_widget.addTab(self.behavior_tab, "動作")
+        self.tab_widget.addTab(self.hotkey_tab, "ホットキー")
         self.tab_widget.addTab(self.advanced_tab, "高度な設定")
         
         layout.addWidget(self.tab_widget)
@@ -361,17 +437,20 @@ class SettingsWindow(QWidget):
             # 各タブから設定を取得
             appearance_settings = self.appearance_tab.get_settings()
             behavior_settings = self.behavior_tab.get_settings()
+            hotkey_settings = self.hotkey_tab.get_settings()
             advanced_settings = self.advanced_tab.get_settings()
             
             # 設定を保存
             self.settings_manager.save_appearance_settings(appearance_settings)
             self.settings_manager.save_behavior_settings(behavior_settings)
+            self.settings_manager.save_hotkey_settings(hotkey_settings)
             self.settings_manager.save_advanced_settings(advanced_settings)
             
             # 全設定をまとめて通知
             all_settings = {
                 'appearance': appearance_settings,
                 'behavior': behavior_settings,
+                'hotkey': hotkey_settings,
                 'advanced': advanced_settings
             }
             
