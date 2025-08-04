@@ -5,11 +5,14 @@ ItemListWindow - 登録されたアイテムのリストを表示するウィン
 import os
 import subprocess
 import sys
+import win32com.client
+import win32gui
+import win32con
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
                             QMessageBox, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl, QPoint, QPropertyAnimation, QEasingCurve, QRect, QParallelAnimationGroup
-from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag, QPainter
+from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag, QPainter, QCursor, QPen, QColor
 from ui.icon_utils import icon_extractor
 
 
@@ -25,6 +28,7 @@ class ItemWidget(QFrame):
         self.item_info = item_info
         self.drag_start_position = None
         self.is_reorder_drag = False  # 並び替えドラッグかどうか
+        self.drop_position = None  # ドロップ位置を保存
         self.setup_ui()
         
     def setup_ui(self):
@@ -179,18 +183,35 @@ class ItemWidget(QFrame):
         
     def start_drag(self):
         """ドラッグ操作を開始"""
+        # ドラッグ開始時のマウス位置を保存
+        current_pos = self.mapToGlobal(QPoint(0, 0))
+        
         drag = QDrag(self)
         mime_data = QMimeData()
         
-        # ファイルパスをMimeDataに設定
-        mime_data.setUrls([QUrl.fromLocalFile(self.item_info['path'])])
-        # カスタムデータも設定（リスト間移動用）
+        # カスタムデータのみを設定（ファイルURLは設定しない）
+        # これにより標準のファイルコピー動作を防ぐ
         mime_data.setData("application/x-launcher-item", str(self.item_info['path']).encode('utf-8'))
+        
+        # プレーンテキストとしてもパスを設定（フォールバック用）
+        mime_data.setText(self.item_info['path'])
         
         drag.setMimeData(mime_data)
         
-        # ドラッグ実行
-        drop_action = drag.exec(Qt.DropAction.MoveAction | Qt.DropAction.CopyAction)
+        # ドラッグ時のカーソルを設定
+        self.set_drag_cursors(drag)
+        
+        # マウス位置追跡タイマーを開始
+        self.start_mouse_tracking()
+        
+        # ドラッグ実行（複数のアクションを許可して禁止マークを防ぐ）
+        drop_action = drag.exec(Qt.DropAction.CopyAction | Qt.DropAction.MoveAction)
+        
+        # マウス位置追跡を停止
+        self.stop_mouse_tracking()
+        
+        # ドラッグ終了後の処理
+        self.handle_drag_finished(drop_action)
         
     def start_reorder_drag(self):
         """並び替えドラッグ操作を開始"""
@@ -245,6 +266,310 @@ class ItemWidget(QFrame):
         
         if parent_list:
             parent_list.reorder_drag_active = False
+            
+    def start_mouse_tracking(self):
+        """マウス位置追跡を開始"""
+        self.mouse_tracking_timer = QTimer()
+        self.mouse_tracking_timer.timeout.connect(self.track_mouse_position)
+        self.mouse_tracking_timer.start(50)  # 50msごとに位置を追跡
+        
+    def stop_mouse_tracking(self):
+        """マウス位置追跡を停止"""
+        if hasattr(self, 'mouse_tracking_timer'):
+            self.mouse_tracking_timer.stop()
+            self.mouse_tracking_timer.deleteLater()
+            
+    def track_mouse_position(self):
+        """現在のマウス位置を追跡"""
+        try:
+            # Windowsシステムからマウス位置を取得
+            import win32gui
+            self.drop_position = win32gui.GetCursorPos()
+        except Exception as e:
+            print(f"マウス位置追跡エラー: {e}")
+            
+    def set_drag_cursors(self, drag):
+        """ドラッグ時のカーソルを設定"""
+        try:
+            # カスタムドラッグアイコンを作成
+            drag_pixmap = self.create_drag_pixmap()
+            drag.setPixmap(drag_pixmap)
+            
+            # 移動用カーソルを設定（すべてのアクションに対して同じカーソルを設定）
+            move_cursor_pixmap = self.create_move_cursor_pixmap()
+            drag.setDragCursor(move_cursor_pixmap, Qt.DropAction.CopyAction)
+            drag.setDragCursor(move_cursor_pixmap, Qt.DropAction.MoveAction)
+            drag.setDragCursor(move_cursor_pixmap, Qt.DropAction.LinkAction)
+            drag.setDragCursor(move_cursor_pixmap, Qt.DropAction.IgnoreAction)
+            
+            # デフォルトカーソルも同じものに設定
+            drag.setDragCursor(move_cursor_pixmap, Qt.DropAction.ActionMask)
+            
+            print("ドラッグカーソル設定完了")
+            
+        except Exception as e:
+            print(f"ドラッグカーソル設定エラー: {e}")
+            
+    def create_drag_pixmap(self):
+        """ドラッグ用のピクスマップを作成"""
+        try:
+            # アイテムのアイコンをベースにドラッグ画像を作成
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            
+            # 背景の半透明の丸
+            painter.setBrush(QColor(100, 150, 255, 150))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(8, 8, 48, 48)
+            
+            # アイコンの文字（フォルダまたはファイル）
+            painter.setPen(QColor(255, 255, 255))
+            painter.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+            
+            if self.item_info['type'] == 'folder':
+                icon_text = "📁"
+            else:
+                icon_text = "📄"
+                
+            painter.drawText(16, 40, icon_text)
+            painter.end()
+            
+            return pixmap
+            
+        except Exception as e:
+            print(f"ドラッグピクスマップ作成エラー: {e}")
+            # フォールバック
+            pixmap = QPixmap(32, 32)
+            pixmap.fill(QColor(100, 150, 255, 200))
+            return pixmap
+            
+    def create_move_cursor_pixmap(self):
+        """移動用カーソルのピクスマップを作成"""
+        try:
+            pixmap = QPixmap(32, 32)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            
+            # 白い背景円（見やすくするため）
+            painter.setBrush(QColor(255, 255, 255, 200))
+            painter.setPen(QPen(QColor(100, 100, 100), 1))
+            painter.drawEllipse(2, 2, 28, 28)
+            
+            # 移動アイコン（十字矢印）
+            painter.setPen(QPen(QColor(50, 150, 50), 3))  # 緑色で太い線
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            
+            # 十字の線（中心から）
+            painter.drawLine(16, 6, 16, 26)   # 縦線
+            painter.drawLine(6, 16, 26, 16)   # 横線
+            
+            # 矢印の先端（より明確に）
+            painter.setPen(QPen(QColor(50, 150, 50), 2))
+            painter.drawLine(16, 6, 13, 9)    # 上矢印左
+            painter.drawLine(16, 6, 19, 9)    # 上矢印右
+            painter.drawLine(16, 26, 13, 23)  # 下矢印左
+            painter.drawLine(16, 26, 19, 23)  # 下矢印右
+            painter.drawLine(6, 16, 9, 13)    # 左矢印上
+            painter.drawLine(6, 16, 9, 19)    # 左矢印下  
+            painter.drawLine(26, 16, 23, 13)  # 右矢印上
+            painter.drawLine(26, 16, 23, 19)  # 右矢印下
+            
+            painter.end()
+            
+            return pixmap
+            
+        except Exception as e:
+            print(f"移動カーソル作成エラー: {e}")
+            # フォールバック：透明なピクスマップ
+            pixmap = QPixmap(32, 32)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            return pixmap
+            
+    def handle_drag_finished(self, drop_action):
+        """ドラッグ終了後の処理"""
+        try:
+            print(f"ドラッグ終了: アクション={drop_action}")
+            
+            # 並び替えドラッグでない場合のみ処理
+            if not self.is_reorder_drag:
+                # 外部ドロップかどうかを確認するために少し待機
+                QTimer.singleShot(200, self.check_and_create_shortcut)
+                    
+        except Exception as e:
+            print(f"ドラッグ終了処理エラー: {e}")
+            
+    def check_and_create_shortcut(self):
+        """ショートカット作成の最終確認"""
+        try:
+            # 親リストウィンドウを取得
+            parent_list = self.parent()
+            while parent_list and not isinstance(parent_list, ItemListWindow):
+                parent_list = parent_list.parent()
+                
+            if not parent_list:
+                return
+                
+            # アイテムがまだリストに存在するかチェック
+            item_still_exists = False
+            if parent_list.group_icon:
+                for item in parent_list.group_icon.items:
+                    if item['path'] == self.item_info['path']:
+                        item_still_exists = True
+                        break
+                        
+            # アイテムがリストから削除されていない（つまり外部ドロップ）場合のみ処理
+            if item_still_exists:
+                # 他のリストにアイテムが移動されたかチェック
+                moved_to_other_list = self.check_if_moved_to_other_list()
+                
+                if not moved_to_other_list:
+                    # 真の外部ドロップと判断してショートカットを作成
+                    desktop_path = self.get_desktop_path()
+                    if desktop_path:
+                        shortcut_created = self.create_shortcut_at_position(
+                            self.item_info['path'], 
+                            self.item_info['name'], 
+                            desktop_path,
+                            self.drop_position
+                        )
+                        
+                        if shortcut_created:
+                            # リストからアイテムを直接削除（確認ダイアログなし）
+                            self.remove_item_directly(self.item_info['path'])
+                            print(f"ショートカット作成完了、リストから削除: {self.item_info['name']}")
+                        else:
+                            print(f"ショートカット作成失敗: {self.item_info['name']}")
+                else:
+                    print(f"他のリストに移動されたため、ショートカット作成をスキップ: {self.item_info['name']}")
+            else:
+                print(f"アイテムが既に削除されているため、処理をスキップ: {self.item_info['name']}")
+                            
+        except Exception as e:
+            print(f"ショートカット作成確認エラー: {e}")
+            
+    def check_if_moved_to_other_list(self):
+        """アイテムが他のリストに移動されたかチェック"""
+        try:
+            # QApplicationインスタンスから全てのグループアイコンを取得
+            app = QApplication.instance()
+            if hasattr(app, 'group_icons'):
+                current_parent = self.parent()
+                while current_parent and not isinstance(current_parent, ItemListWindow):
+                    current_parent = current_parent.parent()
+                    
+                for group_icon in app.group_icons:
+                    # 現在の親リスト以外をチェック
+                    if current_parent and group_icon != current_parent.group_icon:
+                        for item in group_icon.items:
+                            if item['path'] == self.item_info['path']:
+                                return True
+            return False
+        except Exception as e:
+            print(f"他リスト移動チェックエラー: {e}")
+            return False
+            
+    def get_desktop_path(self):
+        """デスクトップのパスを取得"""
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                               r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders") as key:
+                desktop_path = winreg.QueryValueEx(key, "Desktop")[0]
+                return desktop_path
+        except Exception as e:
+            print(f"デスクトップパス取得エラー: {e}")
+            # フォールバック
+            return os.path.join(os.path.expanduser("~"), "Desktop")
+            
+    def create_shortcut_at_position(self, target_path, shortcut_name, desktop_path, position):
+        """指定位置にショートカットを作成"""
+        try:
+            # ショートカットファイル名を作成
+            shortcut_path = os.path.join(desktop_path, f"{shortcut_name}.lnk")
+            
+            # 既に同名のショートカットがある場合は番号を付ける
+            counter = 1
+            original_shortcut_path = shortcut_path
+            while os.path.exists(shortcut_path):
+                name_without_ext = os.path.splitext(shortcut_name)[0]
+                shortcut_path = os.path.join(desktop_path, f"{name_without_ext} ({counter}).lnk")
+                counter += 1
+                
+            # Windows COMオブジェクトを使ってショートカットを作成
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortCut(shortcut_path)
+            shortcut.Targetpath = target_path
+            
+            # フォルダの場合は作業ディレクトリを設定
+            if os.path.isdir(target_path):
+                shortcut.WorkingDirectory = target_path
+            else:
+                # ファイルの場合は親ディレクトリを作業ディレクトリに
+                shortcut.WorkingDirectory = os.path.dirname(target_path)
+                
+            shortcut.save()
+            
+            # ショートカット作成後、指定位置に配置
+            if position:
+                self.position_desktop_icon(shortcut_path, position)
+            
+            print(f"ショートカット作成成功: {shortcut_path} at {position}")
+            return True
+            
+        except Exception as e:
+            print(f"ショートカット作成エラー: {e}")
+            return False
+            
+    def position_desktop_icon(self, shortcut_path, position):
+        """デスクトップアイコンを指定位置に配置"""
+        try:
+            if not position:
+                return
+                
+            print(f"ショートカット位置設定: {os.path.basename(shortcut_path)} at {position}")
+            
+            # Windowsの制約により、プログラム的にデスクトップアイコンの
+            # 正確な位置を設定するのは非常に困難です。
+            # 現在はドロップ位置の情報を取得し、ログに記録しています。
+            
+            # 将来的な実装案:
+            # 1. デスクトップのグリッド位置を計算
+            # 2. 最も近いグリッド位置にアイコンを配置
+            # 3. レジストリまたはINIファイルを使用して位置情報を保存
+            
+            # 現在は通常の場所（デスクトップ）にショートカットが作成されます
+            
+        except Exception as e:
+            print(f"デスクトップアイコン配置エラー: {e}")
+            
+    def create_shortcut_on_desktop(self, target_path, shortcut_name, desktop_path):
+        """デスクトップにショートカットを作成（後方互換性のため）"""
+        return self.create_shortcut_at_position(target_path, shortcut_name, desktop_path, None)
+        
+    def remove_item_directly(self, item_path):
+        """確認ダイアログなしでリストからアイテムを直接削除"""
+        try:
+            # 親リストウィンドウを取得
+            parent_list = self.parent()
+            while parent_list and not isinstance(parent_list, ItemListWindow):
+                parent_list = parent_list.parent()
+                
+            if parent_list and parent_list.group_icon:
+                # グループアイコンからアイテムを削除
+                parent_list.group_icon.remove_item(item_path)
+                # リストを更新
+                parent_list.refresh_items()
+                print(f"アイテムを直接削除: {os.path.basename(item_path)}")
+            else:
+                print(f"親リストが見つからないため削除失敗: {item_path}")
+                
+        except Exception as e:
+            print(f"直接削除エラー: {e}")
         
     def show_context_menu(self, position):
         """右クリックコンテキストメニューを表示"""
