@@ -8,7 +8,7 @@ import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
                             QMessageBox, QMenu)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl, QPoint
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl, QPoint, QPropertyAnimation, QEasingCurve, QRect, QParallelAnimationGroup
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag, QPainter
 from ui.icon_utils import icon_extractor
 
@@ -202,6 +202,19 @@ class ItemWidget(QFrame):
         if parent_list:
             parent_list.reorder_drag_active = True
             
+        # ドラッグ中フラグを設定
+        self.is_being_dragged = True
+        
+        # ドラッグ中の視覚的フィードバック
+        self.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 150);
+                border: 2px solid rgba(255, 153, 0, 255);
+                border-radius: 5px;
+                margin: 1px;
+            }
+        """)
+            
         drag = QDrag(self)
         mime_data = QMimeData()
         
@@ -214,6 +227,22 @@ class ItemWidget(QFrame):
         drop_action = drag.exec(Qt.DropAction.MoveAction)
         
         # ドラッグ終了後にフラグを解除
+        self.is_being_dragged = False
+        
+        # スタイルをリセット
+        self.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 240);
+                border: 1px solid rgba(200, 200, 200, 150);
+                border-radius: 5px;
+                margin: 1px;
+            }
+            QFrame:hover {
+                background-color: rgba(220, 240, 255, 240);
+                border: 1px solid rgba(100, 150, 255, 200);
+            }
+        """)
+        
         if parent_list:
             parent_list.reorder_drag_active = False
         
@@ -286,6 +315,10 @@ class ItemListWindow(QWidget):
         self.is_pinned = False  # 固定表示モード
         self.dialog_showing = False  # ダイアログ表示中フラグ
         self.reorder_drag_active = False  # 並び替えドラッグ中フラグ
+        self.drag_preview_index = -1  # ドラッグプレビュー位置
+        self.animation_group = None  # アニメーショングループ
+        self.animating_widgets = []  # アニメーション中のウィジェット
+        self.original_positions = {}  # 元の位置を保存
         
         # 遅延非表示用タイマー
         self.hide_timer = QTimer()
@@ -633,6 +666,9 @@ class ItemListWindow(QWidget):
             # ドロップ可能な視覚フィードバック
             if event.mimeData().hasFormat("application/x-launcher-reorder"):
                 self.setStyleSheet("QWidget { border: 2px dashed #ff9900; }")  # 並び替えは橙色
+                self.reorder_drag_active = True
+                # 並び替えドラッグ開始時に元の位置を保存
+                self.save_original_positions()
             else:
                 self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")  # 通常は緑色
         else:
@@ -641,10 +677,31 @@ class ItemListWindow(QWidget):
     def dragLeaveEvent(self, event):
         """ドラッグリーブイベント"""
         self.setStyleSheet("")
+        self.drag_preview_index = -1
+        self.clear_drag_preview()
+        
+    def dragMoveEvent(self, event):
+        """ドラッグ移動イベント"""
+        if event.mimeData().hasFormat("application/x-launcher-reorder"):
+            # ドロップ位置からインデックスを計算
+            drop_y = event.position().y()
+            target_index = self.calculate_drop_index(drop_y)
+            
+            # プレビュー位置が変わった場合のみ更新
+            if target_index != self.drag_preview_index:
+                self.drag_preview_index = target_index
+                self.show_drag_preview(target_index)
+                
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
         
     def dropEvent(self, event):
         """ドロップイベント"""
         self.setStyleSheet("")
+        self.clear_drag_preview()
+        self.drag_preview_index = -1
+        self.reorder_drag_active = False
         
         # 並び替えドロップの場合
         if event.mimeData().hasFormat("application/x-launcher-reorder"):
@@ -656,14 +713,17 @@ class ItemListWindow(QWidget):
             
             # ドラッグされたウィジェットを見つける
             dragged_widget = None
+            dragged_item_path = None
             for i in range(self.items_layout.count() - 1):  # ストレッチを除く
                 widget = self.items_layout.itemAt(i).widget()
                 if widget and str(id(widget)) == widget_id:
                     dragged_widget = widget
+                    dragged_item_path = widget.item_info['path']
                     break
                     
-            if dragged_widget:
-                self.reorder_item(dragged_widget, target_index)
+            # パスで並び替えを実行（より確実）
+            if dragged_item_path:
+                self.reorder_item_by_path(dragged_item_path, target_index)
                 
             event.acceptProposedAction()
             
@@ -755,3 +815,306 @@ class ItemListWindow(QWidget):
         except Exception as e:
             print(f"ドロップ位置計算エラー: {e}")
             return 0
+            
+    def save_original_positions(self):
+        """全ウィジェットの元の位置を保存"""
+        try:
+            self.original_positions.clear()
+            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                widget = self.items_layout.itemAt(i).widget()
+                if widget and hasattr(widget, 'item_info'):
+                    self.original_positions[widget] = widget.pos()
+            print(f"元の位置を保存: {len(self.original_positions)}個")
+        except Exception as e:
+            print(f"元の位置保存エラー: {e}")
+            
+    def reset_to_original_positions(self):
+        """全ウィジェットを元の位置に戻す"""
+        try:
+            for widget, original_pos in self.original_positions.items():
+                widget.move(original_pos)
+            print("元の位置に復元")
+        except Exception as e:
+            print(f"元の位置復元エラー: {e}")
+            
+    def calculate_new_positions_from_original(self, widgets, from_index, to_index):
+        """元の位置を基準に新しい順序でのY位置を計算"""
+        try:
+            if not widgets or not self.original_positions:
+                return [widget.y() for widget in widgets]
+                
+            # 元の位置から基準Y座標を取得
+            first_widget = widgets[0]  
+            base_y = self.original_positions[first_widget].y()
+            
+            # 結果配列を初期化（元の順序での位置）
+            result_positions = []
+            for i in range(len(widgets)):
+                result_positions.append(base_y + (i * self.item_height))
+            
+            # 並び替えのシミュレーション
+            # 元のfrom_indexの位置にあるアイテムをto_indexに移動
+            if from_index != to_index:
+                # ドラッグされるアイテムの新しい位置
+                dragged_y = base_y + (to_index * self.item_height)
+                
+                if from_index < to_index:
+                    # 下に移動: from+1からtoまでを1つ上に
+                    for i in range(from_index + 1, to_index + 1):
+                        result_positions[i] = base_y + ((i - 1) * self.item_height)
+                else:
+                    # 上に移動: toからfrom-1までを1つ下に
+                    for i in range(to_index, from_index):
+                        result_positions[i] = base_y + ((i + 1) * self.item_height)
+                        
+                # ドラッグされたアイテムの位置を設定
+                result_positions[from_index] = dragged_y
+            
+            print(f"簡単計算: {from_index}->{to_index}, 結果Y座標:{[int(y) for y in result_positions]}")
+            return result_positions
+            
+        except Exception as e:
+            print(f"位置計算エラー: {e}")
+            return [self.original_positions.get(widget, widget.pos()).y() for widget in widgets]
+            
+    def show_drag_preview(self, target_index):
+        """ドラッグプレビューを表示（アイテムを実際に移動）"""
+        try:
+            # アイテム数チェック
+            item_count = len(self.group_icon.items)
+            if target_index < 0 or target_index > item_count:
+                return
+                
+            # 現在のウィジェットリストを取得
+            widgets = []
+            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                widget = self.items_layout.itemAt(i).widget()
+                if widget and hasattr(widget, 'item_info'):
+                    widgets.append(widget)
+                    
+            if not widgets:
+                return
+                
+            # ドラッグ中のアイテムを探す
+            dragged_widget = None
+            dragged_index = -1
+            
+            # 現在ドラッグ中のウィジェットを特定
+            for i, widget in enumerate(widgets):
+                if hasattr(widget, 'is_being_dragged') and widget.is_being_dragged:
+                    dragged_widget = widget
+                    dragged_index = i
+                    break
+                    
+            if dragged_widget is None:
+                return
+                
+            # 同じ位置なら何もしない
+            if dragged_index == target_index:
+                # 元の位置に戻す
+                self.reset_to_original_positions()
+                return
+                
+            # アニメーション付きで位置を変更
+            self.animate_reorder_preview(widgets, dragged_index, target_index)
+                        
+        except Exception as e:
+            print(f"ドラッグプレビューエラー: {e}")
+            
+    def animate_reorder_preview(self, widgets, from_index, to_index):
+        """アイテムの位置をアニメーション付きで変更"""
+        try:
+            # 既存のアニメーションを停止
+            if self.animation_group:
+                self.animation_group.stop()
+                
+            # まず全てのウィジェットを元の位置に戻す
+            self.reset_to_original_positions()
+            
+            self.animation_group = QParallelAnimationGroup()
+            self.animating_widgets = []
+            
+            # 新しい順序でのY位置を計算（元の位置ベース）
+            new_positions = self.calculate_new_positions_from_original(widgets, from_index, to_index)
+            
+            # 全てのアイテムを新しい位置にアニメーション
+            for i, widget in enumerate(widgets):
+                target_y = new_positions[i]
+                current_y = widget.y()
+                
+                if current_y != target_y:
+                    # ドラッグ中のアイテムは少し長めのアニメーション
+                    duration = 300 if i == from_index else 250
+                    self.animate_widget_to_position(widget, target_y, duration)
+                    
+            # アニメーション開始
+            if self.animation_group.animationCount() > 0:
+                self.animation_group.start()
+                
+        except Exception as e:
+            print(f"並び替えプレビューアニメーションエラー: {e}")
+            
+    def calculate_new_positions(self, widgets, from_index, to_index):
+        """新しい順序での各ウィジェットのY位置を計算"""
+        try:
+            if not widgets:
+                return []
+                
+            # 現在の位置を基準にする
+            positions = [widget.y() for widget in widgets]
+            result_positions = positions.copy()
+            
+            # ドラッグされるアイテムの新しい位置
+            dragged_y = positions[0] + (to_index * self.item_height)
+            result_positions[from_index] = dragged_y
+            
+            # 他のアイテムの位置を調整
+            if from_index < to_index:
+                # 下に移動: from+1からtoまでのアイテムを1つ上に
+                for i in range(from_index + 1, min(to_index + 1, len(widgets))):
+                    result_positions[i] = positions[0] + ((i - 1) * self.item_height)
+            else:
+                # 上に移動: toからfrom-1までのアイテムを1つ下に
+                for i in range(to_index, from_index):
+                    result_positions[i] = positions[0] + ((i + 1) * self.item_height)
+                    
+            print(f"位置計算: {from_index}->{to_index}, 元位置:{positions}, 新位置:{result_positions}")
+            return result_positions
+            
+        except Exception as e:
+            print(f"新しい位置計算エラー: {e}")
+            return [widget.y() for widget in widgets]
+            
+    def animate_widget_to_position(self, widget, target_y, duration):
+        """ウィジェットを指定されたY座標に移動するアニメーション"""
+        try:
+            # 現在の位置を取得
+            current_pos = widget.pos()
+            target_pos = QPoint(current_pos.x(), target_y)
+            
+            # アニメーションを作成
+            animation = QPropertyAnimation(widget, b"pos")
+            animation.setDuration(duration)
+            animation.setStartValue(current_pos)
+            animation.setEndValue(target_pos)
+            animation.setEasingCurve(QEasingCurve.Type.OutQuart)  # より滑らかなイージング
+            
+            # アニメーション終了時の処理
+            animation.finished.connect(lambda: self.on_animation_finished(widget))
+            
+            # アニメーショングループに追加
+            self.animation_group.addAnimation(animation)
+            self.animating_widgets.append(widget)
+            
+            print(f"位置アニメーション: {current_pos.y()} -> {target_y}")
+            
+        except Exception as e:
+            print(f"位置移動アニメーションエラー: {e}")
+            
+    def animate_widget_shift(self, widget, y_offset, duration):
+        """ウィジェットを指定された距離だけ移動するアニメーション（後方互換性のため残す）"""
+        try:
+            current_y = widget.y()
+            target_y = current_y + y_offset
+            self.animate_widget_to_position(widget, target_y, duration)
+            
+        except Exception as e:
+            print(f"ウィジェット移動アニメーションエラー: {e}")
+            
+    def on_animation_finished(self, widget):
+        """アニメーション終了時の処理"""
+        try:
+            if widget in self.animating_widgets:
+                self.animating_widgets.remove(widget)
+                
+            # 全てのアニメーションが終了したかチェック
+            if not self.animating_widgets:
+                print("全てのアニメーションが完了")
+                
+        except Exception as e:
+            print(f"アニメーション終了処理エラー: {e}")
+            
+    def clear_drag_preview(self):
+        """ドラッグプレビューをクリア"""
+        try:
+            # 全てのアニメーションを停止
+            if self.animation_group:
+                self.animation_group.stop()
+                self.animation_group = None
+                
+            self.animating_widgets.clear()
+            
+            # 元の位置に復元
+            self.reset_to_original_positions()
+            
+            # 全てのアイテムウィジェットのスタイルをリセット
+            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                widget = self.items_layout.itemAt(i).widget()
+                if widget and hasattr(widget, 'item_info'):
+                    # ドラッグ中フラグをクリア
+                    if hasattr(widget, 'is_being_dragged'):
+                        widget.is_being_dragged = False
+                        
+                    # 元のスタイルに戻す
+                    widget.setStyleSheet("""
+                        QFrame {
+                            background-color: rgba(255, 255, 255, 240);
+                            border: 1px solid rgba(200, 200, 200, 150);
+                            border-radius: 5px;
+                            margin: 1px;
+                        }
+                        QFrame:hover {
+                            background-color: rgba(220, 240, 255, 240);
+                            border: 1px solid rgba(100, 150, 255, 200);
+                        }
+                    """)
+            
+            # 元の位置データをクリア
+            self.original_positions.clear()
+                    
+        except Exception as e:
+            print(f"ドラッグプレビュークリアエラー: {e}")
+            
+    def reorder_item_with_animation(self, item_widget, new_index):
+        """アニメーション付きアイテム並び替え"""
+        try:
+            # まずプレビューをクリア
+            self.clear_drag_preview()
+            
+            # 通常の並び替え処理を実行
+            self.reorder_item(item_widget, new_index)
+            
+        except Exception as e:
+            print(f"アニメーション付き並び替えエラー: {e}")
+            
+    def reorder_item_by_path(self, item_path, new_index):
+        """パスを指定してアイテムの並び順を変更"""
+        try:
+            # 現在のアイテムのインデックスを取得
+            current_index = -1
+            for i, item_info in enumerate(self.group_icon.items):
+                if item_info['path'] == item_path:
+                    current_index = i
+                    break
+                    
+            if current_index == -1:
+                return  # アイテムが見つからない
+                
+            # 同じ位置の場合は何もしない
+            if current_index == new_index:
+                return
+                
+            # アイテムを移動
+            item_info = self.group_icon.items.pop(current_index)
+            self.group_icon.items.insert(new_index, item_info)
+            
+            # UIを更新
+            self.refresh_items()
+            
+            # データを保存
+            self.group_icon.items_changed.emit()
+            
+            print(f"パス指定並び替え: {current_index} -> {new_index} ({item_path})")
+            
+        except Exception as e:
+            print(f"パス指定並び替えエラー: {e}")
