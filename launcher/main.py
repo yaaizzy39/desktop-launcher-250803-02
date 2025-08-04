@@ -139,6 +139,18 @@ class LauncherApp(QApplication):
         
         group_icon.show()
         
+        # 名前入力後にアイコン設定も促す（初回起動時のデフォルトグループ作成時を除く）
+        if name != "Apps":  # デフォルトグループでない場合
+            reply = QMessageBox.question(
+                None, 
+                "アイコン設定", 
+                f"グループ '{name}' が作成されました。\nカスタムアイコンを設定しますか？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                group_icon.change_icon()
+        
         # データを保存
         self.save_groups()
         
