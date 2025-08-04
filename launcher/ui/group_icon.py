@@ -73,6 +73,7 @@ class GroupIcon(QWidget):
         self.text_label = QLabel(str(self.name))
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text_label.setFixedWidth(50)  # アイコンの横幅と合わせる
+        self.text_label.setFixedHeight(18)  # テキストサイズに合わせて低めに設定
         self.text_label.setStyleSheet("""
             QLabel {
                 color: white;
@@ -449,6 +450,8 @@ class GroupIcon(QWidget):
             
             # テキストラベルの横幅をアイコンラベルと合わせる
             self.text_label.setFixedWidth(icon_label_size)
+            # テキストラベルの高さをテキストサイズに合わせて固定
+            self.text_label.setFixedHeight(18)
             
             # 透明度適用
             opacity = settings.get('opacity', 80) / 100.0
