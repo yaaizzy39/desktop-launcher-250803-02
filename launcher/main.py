@@ -477,18 +477,6 @@ class LauncherApp(QApplication):
                 if success:
                     print(f"グローバルホットキー登録成功: {hotkey_str}")
                     
-                    # システムトレイに右クリックメニューでテスト追加（既存のものがあれば削除）
-                    if hasattr(self, 'tray_icon'):
-                        menu = self.tray_icon.contextMenu()
-                        # 既存のテストアクションを削除
-                        for action in menu.actions():
-                            if action.text().startswith("テスト:"):
-                                menu.removeAction(action)
-                        
-                        test_action = QAction("テスト: アイコン切り替え", self)
-                        test_action.triggered.connect(self.toggle_icons_visibility)
-                        menu.insertAction(menu.actions()[0], test_action)
-                        menu.insertSeparator(menu.actions()[1])
                     
                 else:
                     print(f"グローバルホットキー登録失敗: {hotkey_str}")
