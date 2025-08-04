@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 18.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g>
+	<rect style="fill:#91CA8C;" width="512" height="512"/>
+	<polygon style="opacity:0.1;fill:#040000;" points="512,207.36 512,512 252.928,512 95.642,354.714 80.998,340.07 80.998,247.194 
+		96.614,231.577 102.144,226.048 119.603,208.589 159.027,169.165 177.306,150.887 181.197,146.995 196.147,132.045 
+		216.218,111.974 416.614,111.974 	"/>
+	<g>
+		<g>
+			<polygon style="fill:#D1D1D1;" points="313.16,389.667 198.84,389.667 202.869,303.87 309.131,303.87 			"/>
+			<polygon style="fill:#B8B8B8;" points="311.684,361.66 200.316,361.66 202.866,307.441 309.134,307.441 			"/>
+			<path style="fill:#DEDEDE;" d="M179.88,382.517H332.12c9.612,0,17.477,7.865,17.477,17.477l0,0H162.404l0,0
+				C162.404,390.382,170.268,382.517,179.88,382.517z"/>
+		</g>
+		<path style="fill:#DEDEDE;" d="M431.002,239.36v107.571c0,4.301-3.482,7.783-7.731,7.783H88.73c-4.25,0-7.731-3.482-7.731-7.783
+			V239.36c0-4.301,3.482-7.783,7.731-7.783h334.541C427.52,231.577,431.002,235.059,431.002,239.36z"/>
+		<path style="fill:#3B3B3B;" d="M431.002,122.112v196.045H80.998V122.112h0.256c1.178-5.785,6.349-10.137,12.442-10.137h324.608
+			c6.093,0,11.264,4.352,12.441,10.137H431.002z"/>
+		<rect x="102.132" y="132.051" style="fill:#FFFFFF;" width="307.735" height="166.032"/>
+		<g>
+			<rect x="119.621" y="169.189" style="fill:#ACB6A9;" width="83.413" height="40.742"/>
+			<rect x="215.546" y="169.189" style="fill:#ACB6A9;" width="83.413" height="40.742"/>
+			<rect x="311.471" y="169.189" style="fill:#ACB6A9;" width="83.413" height="40.742"/>
+			<rect x="119.621" y="216.485" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="140.061" y="147.003" style="fill:#ACB6A9;" width="47.665" height="3.873"/>
+			<rect x="119.621" y="272.292" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="119.621" y="228.997" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="119.621" y="243.396" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="119.621" y="257.794" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="217.035" y="216.485" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="217.035" y="272.292" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="217.035" y="228.997" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="217.035" y="243.396" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="217.035" y="257.794" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="311.406" y="216.485" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="311.406" y="272.292" style="fill:#ACB6A9;" width="47.665" height="7.746"/>
+			<rect x="311.405" y="228.997" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="311.405" y="243.396" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<rect x="311.405" y="257.794" style="fill:#ACB6A9;" width="84.009" height="7.746"/>
+			<path style="fill:#ACB6A9;" d="M130.77,144.846L130.77,144.846c2.26,2.26,2.26,5.925,0,8.185l0,0c-2.26,2.26-5.925,2.26-8.185,0
+				l0,0c-2.26-2.26-2.26-5.925,0-8.185l0,0C124.845,142.586,128.51,142.586,130.77,144.846z"/>
+			
+				<rect x="372.936" y="146.206" transform="matrix(-0.7071 -0.7071 0.7071 -0.7071 535.9921 519.893)" style="fill:#ACB6A9;" width="5.467" height="5.467"/>
+			
+				<rect x="386.193" y="146.206" transform="matrix(-0.7071 -0.7071 0.7071 -0.7071 558.6276 529.2647)" style="fill:#ACB6A9;" width="5.467" height="5.467"/>
+			
+				<rect x="361.169" y="146.206" transform="matrix(-0.7071 -0.7071 0.7071 -0.7071 515.9042 511.5723)" style="fill:#ACB6A9;" width="5.467" height="5.467"/>
+		</g>
+	</g>
+</g>
+</svg>
