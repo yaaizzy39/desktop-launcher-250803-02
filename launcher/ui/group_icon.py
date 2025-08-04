@@ -259,6 +259,13 @@ class GroupIcon(QWidget):
         """コンテキストメニューを表示"""
         menu = QMenu(self)
         
+        # 新しいグループを作成
+        new_group_action = QAction("新しいグループを作成", self)
+        new_group_action.triggered.connect(self.create_new_group)
+        menu.addAction(new_group_action)
+        
+        menu.addSeparator()
+        
         # 名前変更
         rename_action = QAction("名前を変更", self)
         rename_action.triggered.connect(self.rename_group)
@@ -300,6 +307,16 @@ class GroupIcon(QWidget):
         menu.addAction(delete_action)
         
         menu.exec(position)
+        
+    def create_new_group(self):
+        """新しいグループを作成"""
+        if self.main_app:
+            self.main_app.create_new_group()
+        else:
+            QMessageBox.warning(
+                self, "エラー", 
+                "新しいグループを作成できません。\nメインアプリケーションとの接続に問題があります。"
+            )
         
     def rename_group(self):
         """グループ名を変更"""
