@@ -382,27 +382,8 @@ class ItemListWindow(QWidget):
         self.title_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.title_label.mouseDoubleClickEvent = self.toggle_pin_mode
         
-        # 閉じるボタン
-        close_btn = QPushButton("×")
-        close_btn.setFixedSize(25, 25)
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 100, 100, 200);
-                border: none;
-                border-radius: 12px;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 50, 50, 255);
-            }
-        """)
-        close_btn.clicked.connect(self.hide)
-        
         header_layout.addWidget(self.title_label)
         header_layout.addStretch()
-        header_layout.addWidget(close_btn)
         header_frame.setLayout(header_layout)
         
         # スクロールエリア
