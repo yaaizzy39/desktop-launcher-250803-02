@@ -863,9 +863,16 @@ class ItemListWindow(QWidget):
                 self.is_window_dragging = True
                 # ウィンドウを移動
                 global_pos = event.globalPosition().toPoint()
+                old_position = self.pos()
                 new_position = self.pos() + (global_pos - self.window_drag_start_position)
                 self.move(new_position)
                 self.window_drag_start_position = global_pos
+                
+                # グループアイコンも一緒に移動
+                if self.group_icon:
+                    icon_offset = new_position - old_position
+                    new_icon_position = self.group_icon.pos() + icon_offset
+                    self.group_icon.move(new_icon_position)
                 
     def header_mouse_release_event(self, event):
         """ヘッダーマウスリリースイベント"""
@@ -874,6 +881,10 @@ class ItemListWindow(QWidget):
                 if not self.is_window_dragging:
                     # ドラッグしていない場合（クリック）- 何もしない（既存のダブルクリック機能は残す）
                     pass
+                else:
+                    # ドラッグ終了時にグループアイコンの位置変更を保存
+                    if self.group_icon:
+                        self.group_icon.position_changed.emit()
                     
                 # フラグをリセット
                 self.window_drag_start_position = None
