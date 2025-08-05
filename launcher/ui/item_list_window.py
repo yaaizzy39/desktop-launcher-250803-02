@@ -657,6 +657,10 @@ class ItemListWindow(QWidget):
         self.animating_widgets = []  # アニメーション中のウィジェット
         self.original_positions = {}  # 元の位置を保存
         
+        # ウィンドウドラッグ用
+        self.window_drag_start_position = None
+        self.is_window_dragging = False
+        
         # 遅延非表示用タイマー
         self.hide_timer = QTimer()
         self.hide_timer.setSingleShot(True)
@@ -685,12 +689,33 @@ class ItemListWindow(QWidget):
         """ドラッグ&ドロップ設定"""
         self.setAcceptDrops(True)
         
+    def calculate_max_height(self):
+        """画面高さに基づいて最大高さを計算"""
+        try:
+            # 利用可能な画面サイズを取得
+            screen = QApplication.primaryScreen()
+            screen_geometry = screen.availableGeometry()
+            screen_height = screen_geometry.height()
+            
+            # 画面高さの90%を最大高さとする（タスクバーやウィンドウフレーム分を考慮）
+            max_height = int(screen_height * 0.9)
+            
+            # 最低でも600pxは確保
+            max_height = max(max_height, 600)
+            
+            print(f"画面高さ: {screen_height}px, 計算された最大高さ: {max_height}px")
+            return max_height
+            
+        except Exception as e:
+            print(f"最大高さ計算エラー: {e}")
+            return 600  # エラー時はデフォルト値
+        
     def setup_ui(self):
         """UI設定"""
         # 初期サイズを設定（後で動的に調整される）
         self.setFixedWidth(300)  # 幅は固定
         self.min_height = 120    # 最小高さ（ヘッダー + 余白）
-        self.max_height = 600    # 最大高さ
+        self.max_height = self.calculate_max_height()  # 最大高さ（画面高さに基づく）
         self.item_height = 42    # アイテム1個あたりの高さ（アイテム高さ40px + 余白2px）
         
         # メインレイアウト - 左マージンをさらに削減
@@ -699,15 +724,15 @@ class ItemListWindow(QWidget):
         main_layout.setSpacing(3)
         
         # ヘッダー
-        header_frame = QFrame()
-        header_frame.setStyleSheet("""
+        self.header_frame = QFrame()
+        self.header_frame.setStyleSheet("""
             QFrame {
                 background-color: rgba(100, 150, 255, 220);
                 border-radius: 8px;
                 border: 1px solid rgba(255, 255, 255, 100);
             }
         """)
-        header_frame.setFixedHeight(40)
+        self.header_frame.setFixedHeight(40)
         
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(6, 5, 8, 5)  # 左マージンを削減
@@ -721,7 +746,7 @@ class ItemListWindow(QWidget):
         
         header_layout.addWidget(self.title_label)
         header_layout.addStretch()
-        header_frame.setLayout(header_layout)
+        self.header_frame.setLayout(header_layout)
         
         # スクロールエリア
         scroll_area = QScrollArea()
@@ -756,7 +781,7 @@ class ItemListWindow(QWidget):
         scroll_area.setWidget(self.items_widget)
         
         # レイアウト構成
-        main_layout.addWidget(header_frame)
+        main_layout.addWidget(self.header_frame)
         main_layout.addWidget(scroll_area)
         
         self.setLayout(main_layout)
@@ -775,6 +800,52 @@ class ItemListWindow(QWidget):
         
         # 初期サイズを調整
         self.adjust_window_height()
+        
+        # ヘッダーフレームにドラッグ機能を追加
+        self.setup_header_drag()
+        
+    def setup_header_drag(self):
+        """ヘッダードラッグ機能を設定"""
+        # ヘッダーフレームにマウスイベントフィルターを設定
+        self.header_frame.mousePressEvent = self.header_mouse_press_event
+        self.header_frame.mouseMoveEvent = self.header_mouse_move_event
+        self.header_frame.mouseReleaseEvent = self.header_mouse_release_event
+        
+        # ドラッグ可能であることを示すカーソルを設定
+        self.header_frame.setCursor(Qt.CursorShape.SizeAllCursor)
+        
+    def header_mouse_press_event(self, event):
+        """ヘッダーマウスプレスイベント"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.window_drag_start_position = event.globalPosition().toPoint()
+            self.is_window_dragging = False
+            
+    def header_mouse_move_event(self, event):
+        """ヘッダーマウス移動イベント（ウィンドウドラッグ）"""
+        if (event.buttons() & Qt.MouseButton.LeftButton and 
+            self.window_drag_start_position is not None):
+            
+            # ドラッグ距離をチェック
+            distance = (event.globalPosition().toPoint() - self.window_drag_start_position).manhattanLength()
+            if distance >= QApplication.startDragDistance():
+                self.is_window_dragging = True
+                # ウィンドウを移動
+                global_pos = event.globalPosition().toPoint()
+                new_position = self.pos() + (global_pos - self.window_drag_start_position)
+                self.move(new_position)
+                self.window_drag_start_position = global_pos
+                
+    def header_mouse_release_event(self, event):
+        """ヘッダーマウスリリースイベント"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.window_drag_start_position is not None:
+                if not self.is_window_dragging:
+                    # ドラッグしていない場合（クリック）- 何もしない（既存のダブルクリック機能は残す）
+                    pass
+                    
+                # フラグをリセット
+                self.window_drag_start_position = None
+                self.is_window_dragging = False
         
     def refresh_items(self):
         """アイテムリストを更新"""
@@ -1125,10 +1196,37 @@ class ItemListWindow(QWidget):
             # ウィンドウサイズを設定
             self.setFixedHeight(target_height)
             
+            # ウィンドウが画面下部を超えないよう位置を調整
+            self.adjust_window_position()
+            
             print(f"ウィンドウ高さ調整: アイテム数={item_count}, 高さ={target_height}px")
             
         except Exception as e:
             print(f"ウィンドウ高さ調整エラー: {e}")
+            
+    def adjust_window_position(self):
+        """ウィンドウが画面外に出ないよう位置を調整"""
+        try:
+            # 画面の利用可能領域を取得
+            screen = QApplication.primaryScreen()
+            screen_geometry = screen.availableGeometry()
+            
+            # 現在のウィンドウ位置とサイズ
+            current_pos = self.pos()
+            window_height = self.height()
+            
+            # ウィンドウ下端が画面下部を超える場合
+            if current_pos.y() + window_height > screen_geometry.bottom():
+                # ウィンドウを画面内に収まるよう上に移動
+                new_y = screen_geometry.bottom() - window_height
+                # ただし画面上端より上には行かないよう制限
+                new_y = max(new_y, screen_geometry.top())
+                
+                self.move(current_pos.x(), new_y)
+                print(f"ウィンドウ位置調整: Y座標 {current_pos.y()} → {new_y}")
+                
+        except Exception as e:
+            print(f"ウィンドウ位置調整エラー: {e}")
             
     def calculate_drop_index(self, drop_y):
         """ドロップ位置からアイテムのインデックスを計算"""
