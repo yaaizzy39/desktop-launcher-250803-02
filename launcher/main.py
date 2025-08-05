@@ -275,34 +275,34 @@ class LauncherApp(QApplication):
         window_width = window.width()
         window_height = window.height()
         
-        # アイコン右端からリストの視覚的コンテンツまで一定距離を保つ
-        # アイコンサイズに応じて動的にオフセットを調整
-        visual_gap = 3  # アイコン右端からリストの視覚的コンテンツまでの目標距離
+        # アイコンが画面の右半分にある場合は左側に、左半分にある場合は右側にリストを配置
+        icon_center_x = icon_pos.x() + icon_size.width() // 2
+        screen_center_x = screen_x + screen_width // 2
         
-        # アイコンサイズに基づく基本オフセット + 固定マージン
-        base_offset = 2   # 基本オフセット（50pxでの隙間をさらに広げる）
-        size_factor = 0.30  # アイコンサイズに応じた調整係数（150pxはそのまま）
-        window_left_offset = base_offset + (icon_size.width() * size_factor)
+        visual_gap = 3  # アイコンとリストの視覚的距離
+        base_offset = 2
+        size_factor = 0.30
+        window_offset = base_offset + (icon_size.width() * size_factor)
+        target_gap = visual_gap - window_offset
         
-        target_gap = visual_gap - window_left_offset  # ウィンドウ位置調整
-        
-        default_x = int(icon_pos.x() + icon_size.width() + target_gap)  # 整数に変換
-        default_y = icon_pos.y()
-        
-        print(f"🔄 NEW CODE: SIZE:{icon_size.width()}px BASE:{base_offset} FACTOR:{size_factor} OFFSET:{window_left_offset:.1f}px GAP:{target_gap:.1f}px -> X:{default_x}")
-        
-        # 水平位置の調整
-        if default_x + window_width > screen_x + screen_width:
-            # 右側にはみ出る場合は左側に配置
-            x = icon_pos.x() - window_width - 2
-            print(f"右側はみ出し -> 左側配置: {x}")
-            # 左側にもはみ出る場合は画面内に収まる位置に調整
-            if x < screen_x:
-                x = max(screen_x, icon_pos.x() + icon_size.width() // 2 - window_width // 2)
-                print(f"左側もはみ出し -> 中央配置: {x}")
+        if icon_center_x > screen_center_x:
+            # アイコンが画面右半分にある場合：左側にリストを配置
+            x = int(icon_pos.x() - window_width - target_gap)
+            print(f"初期配置：リストを左側に配置 X={x} (アイコン中心={icon_center_x}, 画面中心={screen_center_x})")
         else:
-            x = default_x
-            print(f"通常配置: {x}")
+            # アイコンが画面左半分にある場合：右側にリストを配置
+            x = int(icon_pos.x() + icon_size.width() + target_gap)
+            print(f"初期配置：リストを右側に配置 X={x} (アイコン中心={icon_center_x}, 画面中心={screen_center_x})")
+        
+        # 画面外はみ出しの最終調整
+        if x < screen_x:
+            x = screen_x + 5  # 左端に少し余白
+            print(f"左端調整: {x}")
+        elif x + window_width > screen_x + screen_width:
+            x = screen_x + screen_width - window_width - 5  # 右端に少し余白
+            print(f"右端調整: {x}")
+        
+        default_y = icon_pos.y()
             
         # 垂直位置の調整
         if default_y + window_height > screen_y + screen_height:
@@ -318,7 +318,7 @@ class LauncherApp(QApplication):
         final_x = max(screen_x, min(x, screen_x + screen_width - window_width))
         final_y = max(screen_y, min(y, screen_y + screen_height - window_height))
         
-        print(f"FINAL -> X:{final_x} (調整:{'YES' if final_x != default_x else 'NO'})")
+        print(f"FINAL -> X:{final_x}, Y:{final_y}")
         
         # ウィンドウを配置
         window.move(final_x, final_y)

@@ -503,20 +503,61 @@ class GroupIcon(QWidget):
     def update_list_position(self):
         """リストウィンドウの位置を更新"""
         if self.list_window and self.list_window.isVisible():
-            # アイコンの右側にリストを配置
             icon_pos = self.pos()
             icon_size = self.size()
-            # アイコン右端からリストの視覚的コンテンツまで一定距離を保つ
-            # アイコンサイズに応じて動的にオフセットを調整
-            visual_gap = 3  # アイコン右端からリストの視覚的コンテンツまでの目標距離
+            list_size = self.list_window.size()
             
-            # アイコンサイズに基づく基本オフセット + 固定マージン
-            base_offset = 2   # 基本オフセット（50pxでの隙間をさらに広げる）
-            size_factor = 0.30  # アイコンサイズに応じた調整係数（150pxはそのまま）
-            window_left_offset = base_offset + (icon_size.width() * size_factor)
+            # 画面サイズを取得
+            try:
+                from PyQt6.QtWidgets import QApplication
+                screen = QApplication.primaryScreen()
+                screen_geometry = screen.availableGeometry()
+                screen_width = screen_geometry.width()
+                screen_x = screen_geometry.x()
+            except Exception as e:
+                print(f"画面サイズ取得エラー: {e}")
+                # フォールバック値
+                screen_width = 1920
+                screen_x = 0
             
-            target_gap = visual_gap - window_left_offset  # ウィンドウ位置調整
+            # アイコンが画面の右半分にある場合は左側に、左半分にある場合は右側にリストを配置
+            icon_center_x = icon_pos.x() + icon_size.width() // 2
+            screen_center_x = screen_x + screen_width // 2
             
-            list_x = int(icon_pos.x() + icon_size.width() + target_gap)  # 整数に変換
-            list_y = icon_pos.y()
-            self.list_window.move(list_x, list_y)
+            visual_gap = 3  # アイコンとリストの視覚的距離
+            base_offset = 2
+            size_factor = 0.30
+            window_offset = base_offset + (icon_size.width() * size_factor)
+            target_gap = visual_gap - window_offset
+            
+            if icon_center_x > screen_center_x:
+                # アイコンが画面右半分にある場合：左側にリストを配置
+                list_x = int(icon_pos.x() - list_size.width() - target_gap)
+                print(f"リストを左側に配置: アイコン中心={icon_center_x}, 画面中心={screen_center_x}")
+            else:
+                # アイコンが画面左半分にある場合：右側にリストを配置
+                list_x = int(icon_pos.x() + icon_size.width() + target_gap)
+                print(f"リストを右側に配置: アイコン中心={icon_center_x}, 画面中心={screen_center_x}")
+            
+            # 垂直位置の調整（初期表示時と同じロジック）
+            default_y = icon_pos.y()
+            screen_height = screen_geometry.height()
+            screen_y = screen_geometry.y()
+            list_height = list_size.height()
+            
+            # リストが画面下部を超える場合は上側に配置
+            if default_y + list_height > screen_y + screen_height:
+                list_y = icon_pos.y() + icon_size.height() - list_height
+                # 上側にもはみ出る場合は画面内に収まる位置に調整
+                if list_y < screen_y:
+                    list_y = max(screen_y, icon_pos.y() + icon_size.height() // 2 - list_height // 2)
+                print(f"リストを上側に配置: Y={list_y} (画面下部超過)")
+            else:
+                list_y = default_y
+                print(f"リストを通常位置に配置: Y={list_y}")
+            
+            # 最終的に画面境界内に収める
+            final_x = max(screen_x, min(list_x, screen_x + screen_width - list_size.width()))
+            final_y = max(screen_y, min(list_y, screen_y + screen_height - list_height))
+            
+            self.list_window.move(final_x, final_y)
