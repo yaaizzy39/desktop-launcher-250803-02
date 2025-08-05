@@ -197,7 +197,12 @@ class LauncherApp(QApplication):
             self.settings_manager,
             self
         )
-        group_icon.items = group_data.get('items', [])
+        # アイテムデータを読み込み、チェック状態がないものはデフォルトでTrue
+        items = group_data.get('items', [])
+        for item in items:
+            if 'checked' not in item:
+                item['checked'] = True
+        group_icon.items = items
         group_icon.custom_icon_path = group_data.get('custom_icon_path', None)
         group_icon.clicked.connect(self.show_item_list)
         group_icon.double_clicked.connect(self.show_item_list_pinned)

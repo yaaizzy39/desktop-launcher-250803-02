@@ -10,7 +10,7 @@ import win32gui
 import win32con
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
                             QPushButton, QLabel, QFrame, QApplication,
-                            QMessageBox, QMenu)
+                            QMessageBox, QMenu, QCheckBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QMimeData, QUrl, QPoint, QPropertyAnimation, QEasingCurve, QRect, QParallelAnimationGroup
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QAction, QDrag, QPainter, QCursor, QPen, QColor
 from ui.icon_utils import icon_extractor
@@ -30,6 +30,9 @@ class ItemWidget(QFrame):
         self.drag_start_position = None
         self.is_reorder_drag = False  # 並び替えドラッグかどうか
         self.drop_position = None  # ドロップ位置を保存
+        # チェック状態をitem_infoに追加（デフォルトはTrue）
+        if 'checked' not in self.item_info:
+            self.item_info['checked'] = True
         self.setup_ui()
         
     def setup_ui(self):
@@ -52,6 +55,12 @@ class ItemWidget(QFrame):
         layout = QHBoxLayout()
         layout.setContentsMargins(8, 5, 8, 5)
         layout.setSpacing(8)
+        
+        # チェックボックス
+        self.checkbox = QCheckBox()
+        self.checkbox.setChecked(self.item_info.get('checked', True))
+        self.checkbox.stateChanged.connect(self.on_checkbox_changed)
+        self.checkbox.setFixedSize(20, 20)
         
         # アイコン
         icon_label = QLabel()
@@ -97,6 +106,7 @@ class ItemWidget(QFrame):
         if self.path_label:
             info_layout.addWidget(self.path_label)
         
+        layout.addWidget(self.checkbox)
         layout.addWidget(icon_label)
         layout.addLayout(info_layout)
         layout.addStretch()
@@ -106,6 +116,18 @@ class ItemWidget(QFrame):
         # 右クリックメニューを有効にする
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+        
+    def on_checkbox_changed(self, state):
+        """チェックボックス状態変更時の処理"""
+        self.item_info['checked'] = (state == Qt.CheckState.Checked.value)
+        # 親リストウィンドウを取得してデータ保存を要求
+        parent_list = self.parent()
+        while parent_list and not isinstance(parent_list, ItemListWindow):
+            parent_list = parent_list.parent()
+        
+        if parent_list and parent_list.group_icon:
+            parent_list.group_icon.items_changed.emit()
+            print(f"チェック状態変更: {self.item_info['name']} = {'ON' if self.item_info['checked'] else 'OFF'}")
         
     def should_show_file_path(self):
         """ファイルパスを表示するかどうかを判定"""
@@ -889,8 +911,9 @@ class ItemListWindow(QWidget):
         launch_all_action.triggered.connect(self.on_launch_all_triggered)
         menu.addAction(launch_all_action)
         
-        # アイテムがない場合は無効化
-        if not self.group_icon.items:
+        # チェックされたアイテムがない場合は無効化
+        checked_items = [item for item in self.group_icon.items if item.get('checked', True)]
+        if not checked_items:
             launch_all_action.setEnabled(False)
         
         # メニューを表示
@@ -912,16 +935,23 @@ class ItemListWindow(QWidget):
         print("メニュー終了: 自動非表示機能を復活")
         
     def launch_all_items(self):
-        """全てのアイテムを上から順番に起動"""
+        """チェックされたアイテムを上から順番に起動"""
         try:
             if not self.group_icon.items:
                 print("起動するアイテムがありません")
                 return
                 
-            print(f"全て起動開始: {len(self.group_icon.items)}個のアイテム")
+            # チェックされたアイテムのみをフィルタリング
+            checked_items = [item for item in self.group_icon.items if item.get('checked', True)]
             
-            # アイテムリストをコピーして起動処理を開始
-            self.launch_queue = list(self.group_icon.items)
+            if not checked_items:
+                print("チェックされたアイテムがありません")
+                return
+                
+            print(f"チェックされたアイテム起動開始: {len(checked_items)}個のアイテム")
+            
+            # チェックされたアイテムリストをコピーして起動処理を開始
+            self.launch_queue = list(checked_items)
             self.launch_index = 0
             
             # 最初のアイテム起動
@@ -969,7 +999,7 @@ class ItemListWindow(QWidget):
                 QTimer.singleShot(3000, self.launch_next_item)
             else:
                 # 最後のアイテムの場合は完了処理
-                QTimer.singleShot(1000, lambda: (print("全て起動完了"), self.hide()))
+                QTimer.singleShot(1000, lambda: (print("チェックされたアイテムの起動完了"), self.hide()))
                 
         except Exception as e:
             print(f"アイテム起動エラー: {e}")

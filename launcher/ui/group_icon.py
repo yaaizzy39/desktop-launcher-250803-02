@@ -441,7 +441,8 @@ class GroupIcon(QWidget):
             'path': resolved_path,  # 解決後のパスを保存
             'name': display_name,   # 表示用の名前
             'type': 'folder' if os.path.isdir(resolved_path) else 'file',
-            'original_path': file_path  # 元のパス（ショートカットの場合のため）
+            'original_path': file_path,  # 元のパス（ショートカットの場合のため）
+            'checked': True  # デフォルトでチェック状態
         }
         
         self.items.append(item_info)
