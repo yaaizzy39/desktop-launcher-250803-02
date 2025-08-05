@@ -817,6 +817,10 @@ class ItemListWindow(QWidget):
         self.header_frame.mouseMoveEvent = self.header_mouse_move_event
         self.header_frame.mouseReleaseEvent = self.header_mouse_release_event
         
+        # 右クリックメニューを設定
+        self.header_frame.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.header_frame.customContextMenuRequested.connect(self.show_header_context_menu)
+        
         # ドラッグ可能であることを示すカーソルを設定
         self.header_frame.setCursor(Qt.CursorShape.SizeAllCursor)
         
@@ -852,6 +856,130 @@ class ItemListWindow(QWidget):
                 # フラグをリセット
                 self.window_drag_start_position = None
                 self.is_window_dragging = False
+                
+    def show_header_context_menu(self, position):
+        """ヘッダー右クリックコンテキストメニューを表示"""
+        # メニュー表示中は自動非表示を無効化
+        self.dialog_showing = True
+        self.hide_timer.stop()  # 実行中のタイマーを停止
+        
+        menu = QMenu()
+        menu.setParent(None)  # 独立したメニュー
+        
+        # メニューのスタイルを調整
+        menu.setStyleSheet("""
+            QMenu {
+                font-size: 12px;
+                padding: 5px;
+                background-color: white;
+                border: 1px solid #ccc;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                min-width: 120px;
+            }
+            QMenu::item:selected {
+                background-color: #4a90e2;
+                color: white;
+            }
+        """)
+        
+        # 全て起動アクション
+        launch_all_action = QAction("全て起動", menu)
+        launch_all_action.triggered.connect(self.on_launch_all_triggered)
+        menu.addAction(launch_all_action)
+        
+        # アイテムがない場合は無効化
+        if not self.group_icon.items:
+            launch_all_action.setEnabled(False)
+        
+        # メニューを表示
+        global_pos = self.header_frame.mapToGlobal(position)
+        menu.exec(global_pos)
+        
+        # メニュー終了後の処理
+        self.on_menu_closed()
+        
+    def on_launch_all_triggered(self):
+        """全て起動メニューがトリガーされた時の処理"""
+        # メニューが確実に閉じられるようにタイマーで少し遅延
+        QTimer.singleShot(100, self.launch_all_items)
+        
+    def on_menu_closed(self):
+        """メニューが閉じられた時の処理"""
+        # メニュー終了後、自動非表示を再開
+        self.dialog_showing = False
+        
+        # マウスがリスト外にある場合は自動非表示を開始
+        if not self.underMouse() and not self.is_pinned:
+            self.mouse_left_after_enter = True
+            self.hide_timer.start(300)  # 300ms後に隠す
+            print("メニュー終了: マウス外なので自動非表示開始")
+        else:
+            print("メニュー終了: マウス内なので自動非表示なし")
+        
+    def launch_all_items(self):
+        """全てのアイテムを上から順番に起動"""
+        try:
+            if not self.group_icon.items:
+                print("起動するアイテムがありません")
+                return
+                
+            print(f"全て起動開始: {len(self.group_icon.items)}個のアイテム")
+            
+            # アイテムリストをコピーして起動処理を開始
+            self.launch_queue = list(self.group_icon.items)
+            self.launch_index = 0
+            
+            # 最初のアイテム起動
+            self.launch_next_item()
+            
+        except Exception as e:
+            print(f"全て起動処理エラー: {e}")
+            QMessageBox.critical(
+                self, "エラー", 
+                f"一括起動中にエラーが発生しました:\n{str(e)}"
+            )
+            
+    def launch_next_item(self):
+        """次のアイテムを起動（タイマー制御）"""
+        try:
+            if self.launch_index >= len(self.launch_queue):
+                # 全て起動完了
+                print("全て起動完了")
+                self.hide()
+                return
+                
+            item_info = self.launch_queue[self.launch_index]
+            item_path = item_info['path']
+            item_name = item_info['name']
+            
+            try:
+                if os.path.exists(item_path):
+                    if os.path.isdir(item_path):
+                        # フォルダを開く
+                        os.startfile(item_path)
+                        print(f"フォルダ起動: {item_name}")
+                    else:
+                        # ファイルを実行
+                        os.startfile(item_path)
+                        print(f"ファイル起動: {item_name}")
+                else:
+                    print(f"ファイルが見つかりません: {item_path}")
+                    
+            except Exception as e:
+                print(f"起動エラー - {item_name}: {e}")
+                
+            # 次のアイテムを起動（3秒後）
+            self.launch_index += 1
+            if self.launch_index < len(self.launch_queue):
+                QTimer.singleShot(3000, self.launch_next_item)
+            else:
+                # 最後のアイテムの場合は完了処理
+                QTimer.singleShot(1000, lambda: (print("全て起動完了"), self.hide()))
+                
+        except Exception as e:
+            print(f"アイテム起動エラー: {e}")
         
     def refresh_items(self):
         """アイテムリストを更新"""
@@ -1031,7 +1159,7 @@ class ItemListWindow(QWidget):
     def leaveEvent(self, event):
         """マウスがウィンドウから出た"""
         if (self.mouse_entered and not self.is_pinned and 
-            not self.dialog_showing and not self.reorder_drag_active):  # 並び替えドラッグ中でない場合のみ
+            not self.dialog_showing and not self.reorder_drag_active):  # メニュー表示中でない場合のみ
             self.mouse_left_after_enter = True
             # 少し遅延してから隠す（誤操作防止）
             self.hide_timer.start(300)  # 300ms後に隠す
@@ -1039,7 +1167,7 @@ class ItemListWindow(QWidget):
         
     def delayed_hide(self):
         """遅延非表示処理"""
-        # 固定モード、ダイアログ表示中、または並び替えドラッグ中の場合は隠さない
+        # 固定モード、メニュー表示中、または並び替えドラッグ中の場合は隠さない
         if self.is_pinned or self.dialog_showing or self.reorder_drag_active:
             return
         # マウスがウィンドウ内に戻ってきていないかチェック
@@ -1048,7 +1176,7 @@ class ItemListWindow(QWidget):
             
     def focusOutEvent(self, event):
         """フォーカスを失ったら隠す"""
-        # 固定モード、マウスがウィンドウ内、ダイアログ表示中、または並び替えドラッグ中は隠さない
+        # 固定モード、マウスがウィンドウ内、メニュー表示中、または並び替えドラッグ中は隠さない
         if (not self.is_pinned and not self.underMouse() and 
             not self.dialog_showing and not self.reorder_drag_active):
             self.hide()
