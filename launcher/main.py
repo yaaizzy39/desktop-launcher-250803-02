@@ -75,17 +75,59 @@ class LauncherApp(QApplication):
         # 初期設定を適用
         self.apply_initial_settings()
         
+        # アプリケーションアイコンを設定
+        self.setup_app_icon()
+        
         # ホットキーを設定
         self.setup_hotkey()
+        
+    def load_app_icon(self):
+        """アプリケーションアイコンを読み込み"""
+        try:
+            # プロジェクトルートのapp_icon.icoを探す
+            import os
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.join(os.path.dirname(script_dir), "app_icon.ico")
+            
+            print(f"アイコンファイル検索パス: {icon_path}")
+            
+            if os.path.exists(icon_path):
+                print(f"アイコンファイル見つかりました: {icon_path}")
+                icon = QIcon(icon_path)
+                if not icon.isNull():
+                    print("アイコン読み込み成功")
+                    return icon
+                else:
+                    print("アイコンファイルが無効です")
+            else:
+                print(f"アイコンファイルが見つかりません: {icon_path}")
+                
+        except Exception as e:
+            print(f"アイコン読み込みエラー: {e}")
+            
+        return None
+        
+    def setup_app_icon(self):
+        """アプリケーション全体のアイコンを設定"""
+        app_icon = self.load_app_icon()
+        if app_icon:
+            # QApplicationのアイコンを設定（全ウィンドウに適用）
+            self.setWindowIcon(app_icon)
+            print("アプリケーションアイコン設定完了")
         
     def setup_system_tray(self):
         """システムトレイアイコンを設定"""
         self.tray_icon = QSystemTrayIcon(self)
         
-        # アイコンを作成（一時的に基本的なアイコン）
-        pixmap = QPixmap(16, 16)
-        pixmap.fill(QColor(100, 100, 255))
-        self.tray_icon.setIcon(QIcon(pixmap))
+        # アプリケーションアイコンを設定
+        app_icon = self.load_app_icon()
+        if app_icon:
+            self.tray_icon.setIcon(app_icon)
+        else:
+            # フォールバック：基本的なアイコン
+            pixmap = QPixmap(16, 16)
+            pixmap.fill(QColor(100, 100, 255))
+            self.tray_icon.setIcon(QIcon(pixmap))
         
         # コンテキストメニュー作成
         tray_menu = QMenu()

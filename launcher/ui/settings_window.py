@@ -430,6 +430,9 @@ class SettingsWindow(QWidget):
         self.setFixedSize(600, 500)
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint)
         
+        # アプリケーションアイコンを設定
+        self.load_and_set_app_icon()
+        
     def setup_ui(self):
         """UI設定"""
         layout = QVBoxLayout()
@@ -538,6 +541,24 @@ class SettingsWindow(QWidget):
                 event.ignore()
         else:
             event.accept()
+            
+    def load_and_set_app_icon(self):
+        """アプリケーションアイコンを読み込んで設定"""
+        try:
+            import os
+            # 設定ウィンドウのファイルパスから2階層上がプロジェクトルート
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(current_dir))
+            icon_path = os.path.join(project_root, "app_icon.ico")
+            
+            if os.path.exists(icon_path):
+                from PyQt6.QtGui import QIcon
+                icon = QIcon(icon_path)
+                if not icon.isNull():
+                    self.setWindowIcon(icon)
+                    print(f"設定ウィンドウアイコン設定完了: {icon_path}")
+        except Exception as e:
+            print(f"設定ウィンドウアイコン設定エラー: {e}")
             
     def request_application_restart(self):
         """メインアプリケーションに再起動を要求"""
