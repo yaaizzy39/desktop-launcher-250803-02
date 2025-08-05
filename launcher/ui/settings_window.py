@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QFileDialog, QMessageBox, QFormLayout, QSpacerItem,
                             QSizePolicy, QFrame, QScrollArea,
                             QTextEdit, QDialogButtonBox, QKeySequenceEdit)
-from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths
+from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette, QKeySequence
 from data.settings_manager import SettingsManager
 
@@ -349,7 +349,17 @@ class AdvancedTab(QWidget):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 if self.settings_manager.import_all_settings(file_path):
-                    QMessageBox.information(self, "成功", "設定がインポートされました。\nアプリケーションを再起動してください。")
+                    restart_reply = QMessageBox.question(
+                        self, "再起動", 
+                        "設定がインポートされました。\n変更を反映するためにアプリケーションを再起動しますか？",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.Yes
+                    )
+                    if restart_reply == QMessageBox.StandardButton.Yes:
+                        # メインアプリケーションの再起動機能を呼び出し
+                        self._request_application_restart()
+                    else:
+                        QMessageBox.information(self, "完了", "設定がインポートされました。\n手動でアプリケーションを再起動してください。")
                 else:
                     QMessageBox.critical(self, "エラー", "設定のインポートに失敗しました。")
                     
@@ -362,9 +372,45 @@ class AdvancedTab(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             if self.settings_manager.reset_all_settings():
-                QMessageBox.information(self, "成功", "設定がリセットされました。\nアプリケーションを再起動してください。")
+                restart_reply = QMessageBox.question(
+                    self, "再起動", 
+                    "設定がリセットされました。\n変更を反映するためにアプリケーションを再起動しますか？",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                if restart_reply == QMessageBox.StandardButton.Yes:
+                    # メインアプリケーションの再起動機能を呼び出し
+                    self._request_application_restart()
+                else:
+                    QMessageBox.information(self, "完了", "設定がリセットされました。\n手動でアプリケーションを再起動してください。")
             else:
                 QMessageBox.critical(self, "エラー", "設定のリセットに失敗しました。")
+                
+    def _request_application_restart(self):
+        """メインアプリケーションに再起動を要求（共通メソッド）"""
+        try:
+            # QApplicationインスタンスからメインアプリを取得
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if hasattr(app, 'restart_application'):
+                # 設定ウィンドウを閉じてから再起動
+                # 親ウィジェットを辿ってSettingsWindowを見つける
+                settings_window = self
+                while settings_window.parent():
+                    settings_window = settings_window.parent()
+                    if hasattr(settings_window, 'close'):
+                        break
+                        
+                if hasattr(settings_window, 'close'):
+                    settings_window.close()
+                    
+                # 少し待機してから再起動（ウィンドウクローズの完了を待つ）
+                QTimer.singleShot(200, app.restart_application)
+            else:
+                QMessageBox.warning(self, "エラー", "再起動機能が見つかりません。\n手動でアプリケーションを再起動してください。")
+        except Exception as e:
+            print(f"再起動要求エラー: {e}")
+            QMessageBox.critical(self, "エラー", f"再起動要求中にエラーが発生しました:\n{str(e)}")
 
 
 class SettingsWindow(QWidget):
@@ -492,3 +538,20 @@ class SettingsWindow(QWidget):
                 event.ignore()
         else:
             event.accept()
+            
+    def request_application_restart(self):
+        """メインアプリケーションに再起動を要求"""
+        try:
+            # QApplicationインスタンスからメインアプリを取得
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if hasattr(app, 'restart_application'):
+                # 設定ウィンドウを閉じてから再起動
+                self.close()
+                # 少し待機してから再起動（ウィンドウクローズの完了を待つ）
+                QTimer.singleShot(200, app.restart_application)
+            else:
+                QMessageBox.warning(self, "エラー", "再起動機能が見つかりません。\n手動でアプリケーションを再起動してください。")
+        except Exception as e:
+            print(f"再起動要求エラー: {e}")
+            QMessageBox.critical(self, "エラー", f"再起動要求中にエラーが発生しました:\n{str(e)}")

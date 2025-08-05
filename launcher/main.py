@@ -470,6 +470,63 @@ class LauncherApp(QApplication):
         
         # アプリケーション終了
         self.quit()
+        
+    def restart_application(self):
+        """アプリケーションを再起動"""
+        try:
+            import subprocess
+            import sys
+            import os
+            
+            print("アプリケーションを再起動中...")
+            
+            # ホットキーの登録を解除
+            self.unregister_hotkey()
+            
+            # 設定ウィンドウを閉じる
+            if self.settings_window:
+                self.settings_window.close()
+                
+            # 全てのウィンドウを閉じる
+            for group_icon in self.group_icons:
+                group_icon.close()
+                
+            for window in self.item_list_windows.values():
+                window.close()
+                
+            # システムトレイから削除
+            self.tray_icon.hide()
+            
+            # 現在のPythonインタープリターとスクリプトパスを取得
+            python_exe = sys.executable
+            script_path = os.path.abspath(sys.argv[0])
+            
+            print(f"Python実行ファイル: {python_exe}")
+            print(f"スクリプトパス: {script_path}")
+            print(f"実行引数: {sys.argv}")
+            print(f"frozen状態: {getattr(sys, 'frozen', False)}")
+            
+            # 実行環境に応じて再起動方法を決定
+            if getattr(sys, 'frozen', False):
+                # PyInstallerでコンパイルされた実行ファイルの場合
+                cmd = [script_path] + sys.argv[1:]
+                print(f"実行コマンド（frozen）: {cmd}")
+                subprocess.Popen(cmd, cwd=os.getcwd())
+            else:
+                # 通常のPythonスクリプトの場合
+                cmd = [python_exe, script_path] + sys.argv[1:]
+                print(f"実行コマンド（script）: {cmd}")
+                subprocess.Popen(cmd, cwd=os.getcwd())
+            
+            print("新しいプロセスを開始しました。現在のプロセスを終了します。")
+            
+            # 少し待機してから終了
+            QTimer.singleShot(500, self.quit)
+            
+        except Exception as e:
+            print(f"再起動エラー: {e}")
+            # 再起動に失敗した場合は通常の終了
+            self.quit_application()
     
     def setup_hotkey(self):
         """グローバルホットキーを設定"""
