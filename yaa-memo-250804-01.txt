@@ -1,2 +1,6 @@
 pip install -r requirements.txt
 python launcher/main.py
+
+
+PyInstallerでのビルドコマンド
+pyinstaller --onefile --windowed --icon=app_icon.ico launcher/main.py
