@@ -157,6 +157,10 @@ class AppearanceTab(QWidget):
         self.show_group_names.stateChanged.connect(self.settings_changed.emit)
         window_layout.addRow(self.show_group_names)
         
+        self.show_file_paths = QCheckBox("リスト内でファイルパスを表示")
+        self.show_file_paths.stateChanged.connect(self.settings_changed.emit)
+        window_layout.addRow(self.show_file_paths)
+        
         window_group.setLayout(window_layout)
         layout.addWidget(window_group)
         
@@ -189,6 +193,7 @@ class AppearanceTab(QWidget):
         
         self.always_on_top.setChecked(settings.get('always_on_top', True))
         self.show_group_names.setChecked(settings.get('show_group_names', True))
+        self.show_file_paths.setChecked(settings.get('show_file_paths', True))
         
     def get_settings(self):
         """現在の設定を取得"""
@@ -197,7 +202,8 @@ class AppearanceTab(QWidget):
             'opacity': self.opacity_slider.value(),
             'icon_color': self.current_color,
             'always_on_top': self.always_on_top.isChecked(),
-            'show_group_names': self.show_group_names.isChecked()
+            'show_group_names': self.show_group_names.isChecked(),
+            'show_file_paths': self.show_file_paths.isChecked()
         }
 
 

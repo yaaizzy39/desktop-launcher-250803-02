@@ -219,7 +219,7 @@ class LauncherApp(QApplication):
         """アイテムリストウィンドウを表示"""
         # ウィンドウを作成または取得
         if group_icon not in self.item_list_windows:
-            self.item_list_windows[group_icon] = ItemListWindow(group_icon)
+            self.item_list_windows[group_icon] = ItemListWindow(group_icon, self.settings_manager)
             
         window = self.item_list_windows[group_icon]
         
@@ -241,7 +241,7 @@ class LauncherApp(QApplication):
         """アイテムリストウィンドウを固定モードで表示"""
         # ウィンドウを作成または取得
         if group_icon not in self.item_list_windows:
-            self.item_list_windows[group_icon] = ItemListWindow(group_icon)
+            self.item_list_windows[group_icon] = ItemListWindow(group_icon, self.settings_manager)
             
         window = self.item_list_windows[group_icon]
         
@@ -359,6 +359,10 @@ class LauncherApp(QApplication):
                 print(f"グループアイコン '{group_icon.name}' に設定を適用中...")
                 group_icon.apply_appearance_settings(appearance)
                 
+                # 対応するリストウィンドウがあれば設定を適用
+                if group_icon in self.item_list_windows:
+                    self.item_list_windows[group_icon].apply_appearance_settings()
+                
             # 動作設定を適用
             behavior = settings.get('behavior', {})
             
@@ -403,6 +407,10 @@ class LauncherApp(QApplication):
             appearance_settings = self.settings_manager.get_appearance_settings()
             for group_icon in self.group_icons:
                 group_icon.apply_appearance_settings(appearance_settings)
+                
+                # 対応するリストウィンドウがあれば設定を適用
+                if group_icon in self.item_list_windows:
+                    self.item_list_windows[group_icon].apply_appearance_settings()
         except Exception as e:
             print(f"初期設定適用エラー: {e}")
             

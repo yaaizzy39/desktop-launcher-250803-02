@@ -26,7 +26,8 @@ class SettingsManager:
                 'opacity': 80,
                 'icon_color': '#6496ff',
                 'always_on_top': True,
-                'show_group_names': True
+                'show_group_names': True,
+                'show_file_paths': True
             },
             'behavior': {
                 'startup_with_windows': False,

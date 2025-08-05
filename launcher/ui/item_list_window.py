@@ -23,9 +23,10 @@ class ItemWidget(QFrame):
     remove_requested = pyqtSignal(str)  # 削除要求シグナル
     reorder_requested = pyqtSignal(object, int)  # 並び替え要求シグナル (item_widget, new_index)
     
-    def __init__(self, item_info):
+    def __init__(self, item_info, settings_manager=None):
         super().__init__()
         self.item_info = item_info
+        self.settings_manager = settings_manager
         self.drag_start_position = None
         self.is_reorder_drag = False  # 並び替えドラッグかどうか
         self.drop_position = None  # ドロップ位置を保存
@@ -76,13 +77,15 @@ class ItemWidget(QFrame):
         name_label.setFont(QFont("Arial", 9))
         name_label.setStyleSheet("color: #333; font-weight: bold;")
         
-        # パス（簡略表示）
-        path_text = self.item_info['path']
-        if len(path_text) > 40:
-            path_text = "..." + path_text[-37:]
-        path_label = QLabel(path_text)
-        path_label.setFont(QFont("Arial", 8))
-        path_label.setStyleSheet("color: #666;")
+        # パス（簡略表示）- 設定に基づいて表示/非表示
+        self.path_label = None
+        if self.should_show_file_path():
+            path_text = self.item_info['path']
+            if len(path_text) > 40:
+                path_text = "..." + path_text[-37:]
+            self.path_label = QLabel(path_text)
+            self.path_label.setFont(QFont("Arial", 8))
+            self.path_label.setStyleSheet("color: #666;")
         
         # 削除ボタンを廃止（右クリックメニューで削除に変更）
         
@@ -91,7 +94,8 @@ class ItemWidget(QFrame):
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(0)
         info_layout.addWidget(name_label)
-        info_layout.addWidget(path_label)
+        if self.path_label:
+            info_layout.addWidget(self.path_label)
         
         layout.addWidget(icon_label)
         layout.addLayout(info_layout)
@@ -102,6 +106,13 @@ class ItemWidget(QFrame):
         # 右クリックメニューを有効にする
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+        
+    def should_show_file_path(self):
+        """ファイルパスを表示するかどうかを判定"""
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            return appearance_settings.get('show_file_paths', True)
+        return True  # デフォルトは表示
         
     def _set_default_icon(self, icon_label):
         """デフォルトアイコンを設定"""
@@ -632,9 +643,10 @@ class ItemWidget(QFrame):
 class ItemListWindow(QWidget):
     """アイテムリストウィンドウ"""
     
-    def __init__(self, group_icon):
+    def __init__(self, group_icon, settings_manager=None):
         super().__init__()
         self.group_icon = group_icon
+        self.settings_manager = settings_manager
         self.mouse_entered = False
         self.mouse_left_after_enter = False
         self.is_pinned = False  # 固定表示モード
@@ -774,7 +786,7 @@ class ItemListWindow(QWidget):
                 
         # 新しいアイテムウィジェットを追加
         for item_info in self.group_icon.items:
-            item_widget = ItemWidget(item_info)
+            item_widget = ItemWidget(item_info, self.settings_manager)
             item_widget.launch_requested.connect(self.launch_item)
             item_widget.remove_requested.connect(self.remove_item)
             item_widget.reorder_requested.connect(self.reorder_item)
@@ -795,6 +807,10 @@ class ItemListWindow(QWidget):
             
         # ウィンドウサイズを調整
         self.adjust_window_height()
+        
+    def apply_appearance_settings(self):
+        """外観設定を適用してUIを更新"""
+        self.refresh_items()
         
     def reorder_item(self, item_widget, new_index):
         """アイテムの並び順を変更"""
