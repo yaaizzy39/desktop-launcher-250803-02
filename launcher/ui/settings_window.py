@@ -9,10 +9,57 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QPushButton, QColorDialog, QComboBox, QLineEdit,
                             QFileDialog, QMessageBox, QFormLayout, QSpacerItem,
                             QSizePolicy, QFrame, QScrollArea,
-                            QTextEdit, QDialogButtonBox, QKeySequenceEdit)
+                            QTextEdit, QDialogButtonBox, QKeySequenceEdit, QDialog)
 from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette, QKeySequence
 from data.settings_manager import SettingsManager
+
+
+class ExportConfirmDialog(QDialog):
+    """エクスポート確認ダイアログ"""
+    
+    def __init__(self, default_filename, parent=None):
+        super().__init__(parent)
+        self.default_filename = default_filename
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """UI設定"""
+        self.setWindowTitle("設定をエクスポート")
+        self.setModal(True)
+        self.resize(400, 150)
+        
+        layout = QVBoxLayout(self)
+        
+        # ファイル名入力
+        filename_layout = QFormLayout()
+        self.filename_edit = QLineEdit(self.default_filename)
+        self.filename_edit.selectAll()
+        filename_layout.addRow("ファイル名:", self.filename_edit)
+        layout.addLayout(filename_layout)
+        
+        # ボタン
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        # OKボタンのテキストを変更
+        ok_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
+        ok_button.setText("エクスポート")
+        
+        # キャンセルボタンのテキストを変更
+        cancel_button = button_box.button(QDialogButtonBox.StandardButton.Cancel)
+        cancel_button.setText("キャンセル")
+        
+    def get_filename(self):
+        """入力されたファイル名を取得"""
+        filename = self.filename_edit.text().strip()
+        if not filename.endswith('.json'):
+            filename += '.json'
+        return filename
 
 
 class HotkeyTab(QWidget):
@@ -324,21 +371,26 @@ class AdvancedTab(QWidget):
         
     def export_settings(self):
         """設定をエクスポート"""
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "設定をエクスポート", 
-            f"launcher_settings_{self.settings_manager.get_timestamp()}.json",
-            "JSON Files (*.json)"
-        )
-        if file_path:
-            if self.settings_manager.export_all_settings(file_path):
-                QMessageBox.information(self, "成功", "設定がエクスポートされました。")
+        default_filename = self.settings_manager.get_default_export_filename()
+        dialog = ExportConfirmDialog(default_filename, self)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            filename = dialog.get_filename()
+            exported_path = self.settings_manager.export_all_settings(filename=filename)
+            if exported_path:
+                QMessageBox.information(
+                    self, "成功", 
+                    f"設定がエクスポートされました。\n保存先: {exported_path}"
+                )
             else:
                 QMessageBox.critical(self, "エラー", "設定のエクスポートに失敗しました。")
                 
     def import_settings(self):
         """設定をインポート"""
+        # エクスポートフォルダを初期ディレクトリとして設定
+        export_dir = self.settings_manager.get_export_dir()
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "設定をインポート", "",
+            self, "設定をインポート", export_dir,
             "JSON Files (*.json)"
         )
         if file_path:

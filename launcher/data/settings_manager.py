@@ -233,9 +233,27 @@ class SettingsManager:
         except Exception as e:
             print(f"設定バックアップクリーンアップエラー: {e}")
             
-    def export_all_settings(self, export_path):
+    def export_all_settings(self, export_dir=None, filename=None):
         """全設定をエクスポート"""
         try:
+            # エクスポートディレクトリが指定されていない場合、デフォルトのexportsフォルダを作成
+            if export_dir is None:
+                export_dir = os.path.join(self.config_dir, "exports")
+            
+            # エクスポートディレクトリを作成
+            os.makedirs(export_dir, exist_ok=True)
+            
+            # エクスポートファイル名を生成
+            if filename is None:
+                timestamp = self.get_timestamp()
+                export_filename = f"launcher_settings_{timestamp}.json"
+            else:
+                export_filename = filename
+                if not export_filename.endswith('.json'):
+                    export_filename += '.json'
+            
+            export_path = os.path.join(export_dir, export_filename)
+            
             export_data = {
                 'version': '1.0',
                 'exported': datetime.now().isoformat(),
@@ -247,11 +265,11 @@ class SettingsManager:
             with open(export_path, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
                 
-            return True
+            return export_path  # エクスポートされたファイルのパスを返す
             
         except Exception as e:
             print(f"設定エクスポートエラー: {e}")
-            return False
+            return None
             
     def import_all_settings(self, import_path):
         """全設定をインポート"""
@@ -322,6 +340,15 @@ class SettingsManager:
         """タイムスタンプを取得"""
         return datetime.now().strftime("%Y%m%d_%H%M%S")
         
+    def get_export_dir(self):
+        """エクスポートディレクトリのパスを取得"""
+        return os.path.join(self.config_dir, "exports")
+        
+    def get_default_export_filename(self):
+        """デフォルトのエクスポートファイル名を取得"""
+        timestamp = self.get_timestamp()
+        return f"launcher_settings_{timestamp}.json"
+
     def get_settings_info(self):
         """設定情報を取得"""
         info = {
