@@ -158,15 +158,15 @@ class ItemWidget(QFrame):
             # ドラッグ距離をチェック
             distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
             if distance >= QApplication.startDragDistance():
-                # Shiftキーが押されている場合は並び替えドラッグ
+                # Shiftキーが押されていない場合は並び替えドラッグ
                 modifiers = QApplication.keyboardModifiers()
                 if modifiers & Qt.KeyboardModifier.ShiftModifier:
-                    self.is_reorder_drag = True
-                    self.start_reorder_drag()
-                else:
                     self.is_reorder_drag = False
                     # 通常のドラッグ操作を開始
                     self.start_drag()
+                else:
+                    self.is_reorder_drag = True
+                    self.start_reorder_drag()
                 
     def mouseReleaseEvent(self, event):
         """マウスリリースイベント"""
@@ -968,14 +968,32 @@ class ItemListWindow(QWidget):
         if (event.mimeData().hasFormat("application/x-launcher-item") or 
             event.mimeData().hasFormat("application/x-launcher-reorder") or 
             event.mimeData().hasUrls()):
-            event.acceptProposedAction()
-            # ドロップ可能な視覚フィードバック
+            
+            # 並び替えドラッグの場合、ドラッグ元が自分のリストかチェック
             if event.mimeData().hasFormat("application/x-launcher-reorder"):
-                self.setStyleSheet("QWidget { border: 2px dashed #ff9900; }")  # 並び替えは橙色
-                self.reorder_drag_active = True
-                # 並び替えドラッグ開始時に元の位置を保存
-                self.save_original_positions()
+                widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
+                is_from_this_list = False
+                
+                # 自分のリスト内のウィジェットかチェック
+                for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                    widget = self.items_layout.itemAt(i).widget()
+                    if widget and str(id(widget)) == widget_id:
+                        is_from_this_list = True
+                        break
+                
+                # 自分のリストからのドラッグの場合のみ受け入れ
+                if is_from_this_list:
+                    event.acceptProposedAction()
+                    self.setStyleSheet("QWidget { border: 2px dashed #ff9900; }")  # 並び替えは橙色
+                    self.reorder_drag_active = True
+                    # 並び替えドラッグ開始時に元の位置を保存
+                    self.save_original_positions()
+                else:
+                    # 他のリストからの並び替えドラッグは受け入れない
+                    event.ignore()
             else:
+                # 通常のドラッグ（リスト間移動やファイルドロップ）
+                event.acceptProposedAction()
                 self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")  # 通常は緑色
         else:
             event.ignore()
