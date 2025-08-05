@@ -4,3 +4,53 @@ python launcher/main.py
 
 PyInstallerでのビルドコマンド
 pyinstaller --onefile --windowed --icon=app_icon.ico launcher/main.py
+
+
+手動でPyInstallerビルドを実行する手順をお教えします。
+
+  手動ビルド手順
+
+  1. コマンドプロンプトまたはPowerShellを開く
+
+  - Windows + R → cmd または powershell と入力してEnter
+
+  2. プロジェクトディレクトリに移動
+
+  cd "G:\ClaudeCode\desktop-launcher-250803-02"
+
+  3. 既存のdist/buildフォルダを削除（必要に応じて）
+
+  rmdir /s /q dist
+  rmdir /s /q build
+
+  4. 標準Python環境でPyInstallerを実行
+
+  "C:\Users\yasuy\AppData\Local\Programs\Python\Python310\python.exe" -m PyInstaller main.spec --clean
+
+
+POwershellの場合
+   & "C:\Users\yasuy\AppData\Local\Programs\Python\Python310\python.exe" -m PyInstaller main.spec --clean
+
+  5. エラーが出た場合の代替コマンド
+
+  "C:\Users\yasuy\AppData\Local\Programs\Python\Python310\python.exe" -m PyInstaller main.spec -y
+
+  現在の.specファイル設定内容
+
+  - アイコンフォルダ: launcher\icons → launcher\icons として含まれる
+  - hiddenimports: ctypes, PyQt6, win32com関連モジュール
+  - 出力形式: フォルダ形式（--onedir）
+
+  ビルド成功後の確認
+
+  ビルド完了後、以下で確認できます：
+  dir dist\desktop_launcher\_internal\launcher\icons
+
+  トラブルシューティング
+
+  - "Permission denied"エラー: タスクマネージャーでdesktop_launcher.exeプロセスを終了
+  - "Module not found"エラー: 必要な依存関係が不足（PyQt6, pywin32など）
+  - フォルダロック: Windows エクスプローラーでdistフォルダを開いている場合は閉じる
+
+  この手順で実行すれば、グループアイコンが正しく含まれたアプリがビルドされます。
+

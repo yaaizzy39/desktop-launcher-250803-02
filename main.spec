@@ -4,7 +4,9 @@ a = Analysis(
     ['launcher\\main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('launcher\\icons', 'launcher\\icons'),
+    ],
     hiddenimports=[
         'ctypes',
         'ctypes.wintypes',
