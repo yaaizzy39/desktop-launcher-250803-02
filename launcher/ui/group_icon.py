@@ -124,8 +124,17 @@ class GroupIcon(QWidget):
     def display_custom_icon(self):
         """カスタムアイコンを表示"""
         try:
+            # アイコンパスを解決
+            from ui.icon_selector_dialog import resolve_icon_path
+            resolved_path = resolve_icon_path(self.custom_icon_path)
+            
+            if not resolved_path:
+                # パスが解決できない場合はアイテム数表示にフォールバック
+                self.display_item_count()
+                return
+            
             # アイコンを読み込み
-            pixmap = QPixmap(self.custom_icon_path)
+            pixmap = QPixmap(resolved_path)
             if not pixmap.isNull():
                 # アイコンサイズに合わせてスケール
                 icon_size = self.icon_label.width()
@@ -330,12 +339,13 @@ class GroupIcon(QWidget):
             
     def change_icon(self):
         """アイコンを変更"""
-        from ui.icon_selector_dialog import IconSelectorDialog
+        from ui.icon_selector_dialog import IconSelectorDialog, get_relative_icon_path
         
         dialog = IconSelectorDialog(self, self.custom_icon_path)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             selected_icon = dialog.get_selected_icon()
-            self.custom_icon_path = selected_icon
+            # 相対パスで保存
+            self.custom_icon_path = get_relative_icon_path(selected_icon) if selected_icon else None
             self.update_display()
             self.items_changed.emit()  # データ保存のため
             

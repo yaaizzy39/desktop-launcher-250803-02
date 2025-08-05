@@ -3,11 +3,95 @@ IconSelectorDialog - アイコン選択ダイアログ
 """
 
 import os
+import sys
+import shutil
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QScrollArea, QWidget, QPushButton, QLabel,
                             QGridLayout, QMessageBox, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor, QRegion
+
+
+def get_icons_directory():
+    """アイコンディレクトリのパスを取得（開発環境とビルド環境に対応）"""
+    if getattr(sys, 'frozen', False):
+        # PyInstallerでビルドされた環境
+        base_path = os.path.dirname(sys.executable)
+        icons_dir = os.path.join(base_path, "icons")
+        
+        # iconsフォルダが存在しない場合は作成
+        if not os.path.exists(icons_dir):
+            os.makedirs(icons_dir, exist_ok=True)
+            
+        # バンドルされたアイコンをコピー（初回起動時のみ）
+        bundled_icons_dir = os.path.join(sys._MEIPASS, "icons")
+        if os.path.exists(bundled_icons_dir) and not os.listdir(icons_dir):
+            for item in os.listdir(bundled_icons_dir):
+                src = os.path.join(bundled_icons_dir, item)
+                dst = os.path.join(icons_dir, item)
+                if os.path.isfile(src):
+                    shutil.copy2(src, dst)
+                    
+        return icons_dir
+    else:
+        # 開発環境
+        return os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+
+
+def ensure_user_icons_directory():
+    """ユーザーがアイコンを追加できるディレクトリを確保"""
+    icons_dir = get_icons_directory()
+    if not os.path.exists(icons_dir):
+        os.makedirs(icons_dir, exist_ok=True)
+    return icons_dir
+
+
+def resolve_icon_path(icon_path):
+    """アイコンパスを実行環境に応じて解決"""
+    if not icon_path:
+        return None
+        
+    # 絶対パスの場合
+    if os.path.isabs(icon_path):
+        # まずそのまま存在確認
+        if os.path.exists(icon_path):
+            return icon_path
+            
+        # アイコンディレクトリ内を確認
+        filename = os.path.basename(icon_path)
+        icons_dir = get_icons_directory()
+        alt_path = os.path.join(icons_dir, filename)
+        if os.path.exists(alt_path):
+            return alt_path
+    else:
+        # 相対パスの場合はアイコンディレクトリ内で検索
+        icons_dir = get_icons_directory()
+        full_path = os.path.join(icons_dir, icon_path)
+        if os.path.exists(full_path):
+            return full_path
+            
+        # ファイル名のみの場合
+        filename = os.path.basename(icon_path)
+        alt_path = os.path.join(icons_dir, filename)
+        if os.path.exists(alt_path):
+            return alt_path
+    
+    return None  # 見つからない場合
+
+
+def get_relative_icon_path(icon_path):
+    """アイコンパスを相対パス（ファイル名のみ）に変換"""
+    if not icon_path:
+        return None
+        
+    icons_dir = get_icons_directory()
+    
+    # iconsディレクトリ内のファイルかチェック
+    if icon_path.startswith(icons_dir):
+        return os.path.basename(icon_path)
+    
+    # 他の場所のファイルの場合はファイル名のみ返す
+    return os.path.basename(icon_path)
 
 
 class IconPreviewWidget(QFrame):
@@ -257,8 +341,8 @@ class IconSelectorDialog(QDialog):
         title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333;")
         layout.addWidget(title_label)
         
-        # アイコンフォルダのパス
-        icons_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+        # アイコンフォルダのパス（ビルド環境対応）
+        icons_dir = ensure_user_icons_directory()
         
         # 単一のアイコンタブを作成
         self.icon_tab = IconCategoryTab(icons_dir, "アイコン")

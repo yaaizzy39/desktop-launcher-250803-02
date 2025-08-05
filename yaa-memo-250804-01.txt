@@ -54,3 +54,27 @@ POwershellの場合
 
   この手順で実行すれば、グループアイコンが正しく含まれたアプリがビルドされます。
 
+---------------------------------------------------
+
+● いいえ、そのコマンドではmain.specファイルの設定が使用されません。修正したアイコンパス対応を有効にするためには、以下の
+  コマンドを使用してください：
+
+  pyinstaller main.spec
+
+  または、main.specを使わずにコマンドラインで全て指定する場合は：
+
+  pyinstaller --onefile --windowed --icon=app_icon.ico --add-data "launcher/icons;icons" launcher/main.py
+
+  推奨方法
+
+  main.specファイルを使用することを強く推奨します：
+
+  pyinstaller main.spec
+
+  理由:
+  - main.specに必要な設定（アイコンフォルダのコピー、hiddenimportsなど）が全て含まれている
+  - 設定の管理が容易
+  - 再現可能なビルド
+
+  --onefileとmain.specの併用はできないので、現在のmain.spec設定では複数ファイル形式（dist/desktop_launcher/フォルダ内に      
+  実行ファイルと依存ファイル）でビルドされます。これにより、アイコンフォルダも正しく配置されます。

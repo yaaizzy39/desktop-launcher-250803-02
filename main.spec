@@ -5,7 +5,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('launcher\\icons', 'launcher\\icons'),
+        ('launcher\\icons', 'icons'),
     ],
     hiddenimports=[
         'ctypes',
