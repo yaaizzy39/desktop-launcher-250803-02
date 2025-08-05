@@ -909,14 +909,7 @@ class ItemListWindow(QWidget):
         """メニューが閉じられた時の処理"""
         # メニュー終了後、自動非表示を再開
         self.dialog_showing = False
-        
-        # マウスがリスト外にある場合は自動非表示を開始
-        if not self.underMouse() and not self.is_pinned:
-            self.mouse_left_after_enter = True
-            self.hide_timer.start(300)  # 300ms後に隠す
-            print("メニュー終了: マウス外なので自動非表示開始")
-        else:
-            print("メニュー終了: マウス内なので自動非表示なし")
+        print("メニュー終了: 自動非表示機能を復活")
         
     def launch_all_items(self):
         """全てのアイテムを上から順番に起動"""
