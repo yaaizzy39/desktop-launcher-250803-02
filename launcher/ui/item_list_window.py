@@ -675,11 +675,17 @@ class ItemListWindow(QWidget):
         
     def setup_window(self):
         """ウィンドウ設定"""
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
-        )
+        # 基本フラグ
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
+        
+        # 最前面表示設定をアイコン設定に合わせる
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            always_on_top = appearance_settings.get('always_on_top', True)
+            if always_on_top:
+                flags |= Qt.WindowType.WindowStaysOnTopHint
+                
+        self.setWindowFlags(flags)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # フォーカスを失ったら自動的に隠す
@@ -881,6 +887,28 @@ class ItemListWindow(QWidget):
         
     def apply_appearance_settings(self):
         """外観設定を適用してUIを更新"""
+        # 最前面表示設定を更新
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            always_on_top = appearance_settings.get('always_on_top', True)
+            
+            # 現在のフラグを取得
+            flags = self.windowFlags()
+            
+            # 最前面表示フラグを更新
+            if always_on_top:
+                flags |= Qt.WindowType.WindowStaysOnTopHint
+            else:
+                flags &= ~Qt.WindowType.WindowStaysOnTopHint
+                
+            # フラグを適用（表示状態を維持）
+            was_visible = self.isVisible()
+            self.setWindowFlags(flags)
+            if was_visible:
+                self.show()
+                
+            print(f"リストウィンドウ最前面表示: {'ON' if always_on_top else 'OFF'}")
+        
         self.refresh_items()
         
     def reorder_item(self, item_widget, new_index):
@@ -947,8 +975,14 @@ class ItemListWindow(QWidget):
         msg_box.setText(f"このアイテムをリストから削除しますか?\n{os.path.basename(item_path)}")
         msg_box.setIcon(QMessageBox.Icon.Question)
         
-        # ダイアログを常に最前面に表示
-        msg_box.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
+        # ダイアログの最前面表示設定をアイコン設定に合わせる
+        dialog_flags = Qt.WindowType.Dialog
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            always_on_top = appearance_settings.get('always_on_top', True)
+            if always_on_top:
+                dialog_flags |= Qt.WindowType.WindowStaysOnTopHint
+        msg_box.setWindowFlags(dialog_flags)
         
         # ボタンを大きくするためのスタイルシート
         msg_box.setStyleSheet("""
