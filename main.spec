@@ -6,6 +6,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('launcher\\icons', 'icons'),
+        ('app_icon.ico', '.'),
     ],
     hiddenimports=[
         'ctypes',

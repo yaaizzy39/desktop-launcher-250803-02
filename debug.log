@@ -1,0 +1,430 @@
+[2025-08-06 10:49:16] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:16] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:16] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:16] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:16] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:16] display_custom_icon: is_svg = True
+[2025-08-06 10:49:16] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:16] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:16] create_circular_pixmap: size = 44
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:16] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:16] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:16] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:16] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:16] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:16] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:16] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:16] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:16] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:16] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:16] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:16] display_custom_icon: is_svg = True
+[2025-08-06 10:49:16] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:16] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:16] create_circular_pixmap: size = 44
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:16] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:16] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:16] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:16] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:16] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:16] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:16] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:16] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:16] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:16] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:16] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:16] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:16] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:16] display_custom_icon: is_svg = True
+[2025-08-06 10:49:16] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:16] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:16] create_circular_pixmap: size = 44
+[2025-08-06 10:49:16] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-01\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-01\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンなし、display_item_count()を呼び出し
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = icon-coin-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = icon-coin-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 相対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: フルパス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-coin-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: フルパスでファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-coin-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-picture-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-movie-250803-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-pencill-250805-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-01\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-01\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-school-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\documents.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-folder-250803-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-music-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-PC-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 絶対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内をチェック = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-driver-250805-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了
+[2025-08-06 10:49:17] update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し
+[2025-08-06 10:49:17] display_custom_icon: custom_icon_path = icon-coin-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: 入力パス = icon-coin-250804-01.svg
+[2025-08-06 10:49:17] get_icons_directory: 開発環境, icons_dir = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: アイコンディレクトリ = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons
+[2025-08-06 10:49:17] resolve_icon_path: 相対パスとして処理
+[2025-08-06 10:49:17] resolve_icon_path: フルパス = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-coin-250804-01.svg
+[2025-08-06 10:49:17] resolve_icon_path: フルパスでファイル存在確認OK
+[2025-08-06 10:49:17] display_custom_icon: resolved_path = H:\yasuyuki\ClaudeCode\desktop-launcher-250803-02\launcher\icons\icon-coin-250804-01.svg
+[2025-08-06 10:49:17] display_custom_icon: is_svg = True
+[2025-08-06 10:49:17] display_custom_icon: SVGファイル読み込み成功
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップに円形マスクを適用
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap.isNull() = False
+[2025-08-06 10:49:17] create_circular_pixmap: size = 44
+[2025-08-06 10:49:17] create_circular_pixmap: source_pixmap size = 44x44
+[2025-08-06 10:49:17] create_circular_pixmap: 描画位置 = (0, 0)
+[2025-08-06 10:49:17] create_circular_pixmap: 完成したピクスマップ.isNull() = False
+[2025-08-06 10:49:17] display_custom_icon: SVGピクスマップを設定完了
+[2025-08-06 10:49:17] display_custom_icon: スタイル設定完了
+[2025-08-06 10:49:17] display_custom_icon: テキストをクリア
+[2025-08-06 10:49:17] display_custom_icon: 更新処理完了

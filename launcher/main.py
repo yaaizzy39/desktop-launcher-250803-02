@@ -84,12 +84,20 @@ class LauncherApp(QApplication):
     def load_app_icon(self):
         """アプリケーションアイコンを読み込み"""
         try:
-            # プロジェクトルートのapp_icon.icoを探す
             import os
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(os.path.dirname(script_dir), "app_icon.ico")
             
-            print(f"アイコンファイル検索パス: {icon_path}")
+            # ビルド環境かどうかを判定
+            if getattr(sys, 'frozen', False):
+                # PyInstallerでビルドされた環境
+                # _internal/app_icon.icoを探す
+                base_path = os.path.dirname(sys.executable)
+                icon_path = os.path.join(base_path, "_internal", "app_icon.ico")
+                print(f"ビルド環境でのアイコンファイル検索パス: {icon_path}")
+            else:
+                # 開発環境
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                icon_path = os.path.join(os.path.dirname(script_dir), "app_icon.ico")
+                print(f"開発環境でのアイコンファイル検索パス: {icon_path}")
             
             if os.path.exists(icon_path):
                 print(f"アイコンファイル見つかりました: {icon_path}")
