@@ -31,7 +31,8 @@ class SettingsManager:
             },
             'behavior': {
                 'startup_with_windows': False,
-                'minimize_to_tray': True
+                'minimize_to_tray': True,
+                'launch_interval': 3
             },
             'hotkey': {
                 'toggle_visibility': 'Ctrl+Alt+L'

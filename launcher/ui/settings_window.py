@@ -285,6 +285,26 @@ class BehaviorTab(QWidget):
         startup_group.setLayout(startup_layout)
         layout.addWidget(startup_group)
         
+        # 全て起動設定
+        launch_group = QGroupBox("全て起動設定")
+        launch_layout = QFormLayout()
+        
+        # 起動間隔設定
+        self.launch_interval_spin = QSpinBox()
+        self.launch_interval_spin.setRange(1, 30)
+        self.launch_interval_spin.setSuffix(" 秒")
+        self.launch_interval_spin.valueChanged.connect(self.settings_changed.emit)
+        
+        # 説明ラベル
+        interval_help_label = QLabel("各アプリケーションの起動間隔を設定します（1〜30秒）")
+        interval_help_label.setStyleSheet("color: #666; font-size: 11px;")
+        
+        launch_layout.addRow("起動間隔:", self.launch_interval_spin)
+        launch_layout.addRow("", interval_help_label)
+        
+        launch_group.setLayout(launch_layout)
+        layout.addWidget(launch_group)
+        
         
         layout.addStretch()
         self.setLayout(layout)
@@ -295,12 +315,14 @@ class BehaviorTab(QWidget):
         
         self.startup_with_windows.setChecked(settings.get('startup_with_windows', False))
         self.minimize_to_tray.setChecked(settings.get('minimize_to_tray', True))
+        self.launch_interval_spin.setValue(settings.get('launch_interval', 3))
         
     def get_settings(self):
         """現在の設定を取得"""
         return {
             'startup_with_windows': self.startup_with_windows.isChecked(),
-            'minimize_to_tray': self.minimize_to_tray.isChecked()
+            'minimize_to_tray': self.minimize_to_tray.isChecked(),
+            'launch_interval': self.launch_interval_spin.value()
         }
 
 

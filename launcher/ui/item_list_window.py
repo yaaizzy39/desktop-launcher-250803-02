@@ -1133,10 +1133,16 @@ class ItemListWindow(QWidget):
             except Exception as e:
                 print(f"起動エラー - {item_name}: {e}")
                 
-            # 次のアイテムを起動（3秒後）
+            # 次のアイテムを起動（設定された間隔で）
             self.launch_index += 1
             if self.launch_index < len(self.launch_queue):
-                QTimer.singleShot(3000, self.launch_next_item)
+                # 設定から起動間隔を取得（デフォルト3秒）
+                interval_seconds = 3
+                if self.settings_manager:
+                    behavior_settings = self.settings_manager.get_behavior_settings()
+                    interval_seconds = behavior_settings.get('launch_interval', 3)
+                
+                QTimer.singleShot(interval_seconds * 1000, self.launch_next_item)
             else:
                 # 最後のアイテムの場合は完了処理
                 QTimer.singleShot(1000, lambda: (print("チェックされたアイテムの起動完了"), self.hide()))
