@@ -633,6 +633,13 @@ class ItemWidget(QFrame):
             }
         """)
         
+        # ファイルの場所を開くアクション
+        open_location_action = QAction("ファイルの場所を開く", menu)
+        open_location_action.triggered.connect(self.open_file_location)
+        menu.addAction(open_location_action)
+        
+        menu.addSeparator()
+        
         # 削除アクション
         delete_action = QAction("削除", menu)
         delete_action.triggered.connect(lambda: self.remove_requested.emit(self.item_info['path']))
@@ -651,6 +658,37 @@ class ItemWidget(QFrame):
         if parent_list:
             parent_list.dialog_showing = False
         
+    def open_file_location(self):
+        """ファイルの場所をエクスプローラーで開く"""
+        try:
+            file_path = self.item_info['path']
+            
+            # ファイルまたはフォルダが存在するかチェック
+            if not os.path.exists(file_path):
+                QMessageBox.warning(
+                    self, "エラー", 
+                    f"ファイルまたはフォルダが見つかりません:\n{file_path}"
+                )
+                return
+            
+            # フォルダの場合はそのフォルダを開く
+            if os.path.isdir(file_path):
+                # フォルダをエクスプローラーで開く
+                subprocess.run(['explorer', file_path], check=False)
+                print(f"フォルダを開きました: {file_path}")
+            else:
+                # ファイルの場合は親フォルダを開いてファイルを選択
+                # /selectオプションでファイルを選択状態にする
+                subprocess.run(['explorer', '/select,', file_path], check=False)
+                print(f"ファイルの場所を開きました: {file_path}")
+                
+        except Exception as e:
+            print(f"ファイルの場所を開くエラー: {e}")
+            QMessageBox.critical(
+                self, "エラー", 
+                f"ファイルの場所を開くことができませんでした:\n{str(e)}"
+            )
+    
     def show_item_info(self):
         """アイテム情報を表示"""
         from PyQt6.QtWidgets import QMessageBox
