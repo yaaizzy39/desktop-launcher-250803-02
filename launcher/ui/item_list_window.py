@@ -716,10 +716,6 @@ class ItemWidget(QFrame):
         delete_action.triggered.connect(lambda: self.remove_requested.emit(self.item_info))
         menu.addAction(delete_action)
         
-        # アイテム情報表示アクション
-        info_action = QAction("プロパティ", menu)
-        info_action.triggered.connect(self.show_item_info)
-        menu.addAction(info_action)
         
         # メニューを表示
         print(f"[DEBUG] メニューを位置 {position} に表示")
@@ -793,15 +789,6 @@ class ItemWidget(QFrame):
                 f"ファイルの場所を開くことができませんでした:\n{str(e)}"
             )
     
-    def show_item_info(self):
-        """アイテム情報を表示"""
-        from PyQt6.QtWidgets import QMessageBox
-        info_text = f"""
-アイテム名: {self.item_info['name']}
-パス: {self.item_info['path']}
-タイプ: {self.item_info['type']}
-        """
-        QMessageBox.information(self, "アイテム情報", info_text.strip())
 
 
 class ItemListWindow(QWidget):
