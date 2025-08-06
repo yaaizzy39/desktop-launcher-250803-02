@@ -12,6 +12,21 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor, QRegion
 
 
+def write_debug_log(message):
+    """デバッグ情報をファイルに出力"""
+    try:
+        if getattr(sys, 'frozen', False):
+            log_file = os.path.join(os.path.dirname(sys.executable), "debug.log")
+        else:
+            log_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug.log")
+        
+        with open(log_file, 'a', encoding='utf-8') as f:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"[{timestamp}] {message}\n")
+    except:
+        pass
+
 def get_icons_directory():
     """アイコンディレクトリのパスを取得（開発環境とビルド環境に対応）"""
     if getattr(sys, 'frozen', False):
@@ -19,23 +34,35 @@ def get_icons_directory():
         base_path = os.path.dirname(sys.executable)
         icons_dir = os.path.join(base_path, "icons")
         
+        write_debug_log(f"get_icons_directory: ビルド環境, base_path = {base_path}")
+        write_debug_log(f"get_icons_directory: icons_dir = {icons_dir}")
+        
         # iconsフォルダが存在しない場合は作成
         if not os.path.exists(icons_dir):
+            write_debug_log(f"get_icons_directory: iconsフォルダが存在しないため作成")
             os.makedirs(icons_dir, exist_ok=True)
             
         # バンドルされたアイコンをコピー（初回起動時のみ）
         bundled_icons_dir = os.path.join(sys._MEIPASS, "icons")
-        if os.path.exists(bundled_icons_dir) and not os.listdir(icons_dir):
+        write_debug_log(f"get_icons_directory: bundled_icons_dir = {bundled_icons_dir}")
+        write_debug_log(f"get_icons_directory: bundled_icons_dir 存在? {os.path.exists(bundled_icons_dir)}")
+        write_debug_log(f"get_icons_directory: icons_dir内容 = {os.listdir(icons_dir) if os.path.exists(icons_dir) else 'フォルダ存在せず'}")
+        
+        if os.path.exists(bundled_icons_dir) and (not os.path.exists(icons_dir) or not os.listdir(icons_dir)):
+            write_debug_log(f"get_icons_directory: バンドルされたアイコンをコピー中...")
             for item in os.listdir(bundled_icons_dir):
                 src = os.path.join(bundled_icons_dir, item)
                 dst = os.path.join(icons_dir, item)
                 if os.path.isfile(src):
+                    write_debug_log(f"get_icons_directory: {src} -> {dst}")
                     shutil.copy2(src, dst)
                     
         return icons_dir
     else:
         # 開発環境
-        return os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+        dev_icons_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons")
+        write_debug_log(f"get_icons_directory: 開発環境, icons_dir = {dev_icons_dir}")
+        return dev_icons_dir
 
 
 def ensure_user_icons_directory():
@@ -48,34 +75,49 @@ def ensure_user_icons_directory():
 
 def resolve_icon_path(icon_path):
     """アイコンパスを実行環境に応じて解決"""
+    write_debug_log(f"resolve_icon_path: 入力パス = {icon_path}")
+    
     if not icon_path:
+        write_debug_log(f"resolve_icon_path: パスが空のため None を返す")
         return None
+    
+    icons_dir = get_icons_directory()
+    write_debug_log(f"resolve_icon_path: アイコンディレクトリ = {icons_dir}")
         
     # 絶対パスの場合
     if os.path.isabs(icon_path):
-        # まずそのまま存在確認
-        if os.path.exists(icon_path):
-            return icon_path
-            
-        # アイコンディレクトリ内を確認
+        write_debug_log(f"resolve_icon_path: 絶対パスとして処理")
+        
+        # ビルド環境では常にアイコンディレクトリ内を優先して使用
         filename = os.path.basename(icon_path)
-        icons_dir = get_icons_directory()
         alt_path = os.path.join(icons_dir, filename)
+        write_debug_log(f"resolve_icon_path: アイコンディレクトリ内をチェック = {alt_path}")
         if os.path.exists(alt_path):
+            write_debug_log(f"resolve_icon_path: アイコンディレクトリ内でファイル存在確認OK")
             return alt_path
+            
+        # アイコンディレクトリ内にない場合のみ、元のパスをチェック
+        if os.path.exists(icon_path):
+            write_debug_log(f"resolve_icon_path: 絶対パスでファイル存在確認OK")
+            return icon_path
     else:
+        write_debug_log(f"resolve_icon_path: 相対パスとして処理")
         # 相対パスの場合はアイコンディレクトリ内で検索
-        icons_dir = get_icons_directory()
         full_path = os.path.join(icons_dir, icon_path)
+        write_debug_log(f"resolve_icon_path: フルパス = {full_path}")
         if os.path.exists(full_path):
+            write_debug_log(f"resolve_icon_path: フルパスでファイル存在確認OK")
             return full_path
             
         # ファイル名のみの場合
         filename = os.path.basename(icon_path)
         alt_path = os.path.join(icons_dir, filename)
+        write_debug_log(f"resolve_icon_path: ファイル名のみの代替パス = {alt_path}")
         if os.path.exists(alt_path):
+            write_debug_log(f"resolve_icon_path: ファイル名のみの代替パスでファイル存在確認OK")
             return alt_path
     
+    write_debug_log(f"resolve_icon_path: ファイルが見つからないため None を返す")
     return None  # 見つからない場合
 
 

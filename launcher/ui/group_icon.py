@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication,
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
 from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
                         QPixmap, QIcon, QAction, QDrag, QRegion)
+from PyQt6.QtSvg import QSvgRenderer
 from utils.shortcut_resolver import resolve_shortcut, get_display_name
 
 
@@ -99,9 +100,13 @@ class GroupIcon(QWidget):
     def update_display(self):
         """表示を更新"""
         # カスタムアイコンがある場合はアイコンを表示、ない場合はアイテム数を表示
-        if self.custom_icon_path and os.path.exists(self.custom_icon_path):
+        if self.custom_icon_path:
+            from ui.icon_selector_dialog import write_debug_log
+            write_debug_log(f"update_display: カスタムアイコンパスあり、display_custom_icon()を呼び出し")
             self.display_custom_icon()
         else:
+            from ui.icon_selector_dialog import write_debug_log
+            write_debug_log(f"update_display: カスタムアイコンなし、display_item_count()を呼び出し")
             self.display_item_count()
         
         # グループ名の表示・非表示を設定
@@ -124,47 +129,104 @@ class GroupIcon(QWidget):
     def display_custom_icon(self):
         """カスタムアイコンを表示"""
         try:
+            from ui.icon_selector_dialog import resolve_icon_path, write_debug_log
+            write_debug_log(f"display_custom_icon: custom_icon_path = {self.custom_icon_path}")
+            
             # アイコンパスを解決
-            from ui.icon_selector_dialog import resolve_icon_path
             resolved_path = resolve_icon_path(self.custom_icon_path)
+            
+            write_debug_log(f"display_custom_icon: resolved_path = {resolved_path}")
             
             if not resolved_path:
                 # パスが解決できない場合はアイテム数表示にフォールバック
+                write_debug_log(f"display_custom_icon: パスが解決できないため、アイテム数表示にフォールバック")
                 self.display_item_count()
                 return
             
-            # アイコンを読み込み
-            pixmap = QPixmap(resolved_path)
-            if not pixmap.isNull():
-                # アイコンサイズに合わせてスケール
-                icon_size = self.icon_label.width()
-                target_size = icon_size - 4
-                scaled_pixmap = pixmap.scaled(target_size, target_size, 
-                                            Qt.AspectRatioMode.KeepAspectRatio,
-                                            Qt.TransformationMode.SmoothTransformation)
-                
-                # 円形にマスクされたピクスマップを作成
-                circular_pixmap = self.create_circular_pixmap(scaled_pixmap, target_size)
-                self.icon_label.setPixmap(circular_pixmap)
-                
-                # 背景スタイルを設定（アイコン用）
-                border_radius = icon_size // 2
-                self.icon_label.setStyleSheet(f"""
-                    QLabel {{
-                        background-color: rgba(255, 255, 255, 200);
-                        border-radius: {border_radius}px;
-                        border: 2px solid rgba(200, 200, 200, 150);
-                    }}
-                """)
+            # SVGファイルかどうかを判定
+            is_svg = resolved_path.lower().endswith('.svg')
+            write_debug_log(f"display_custom_icon: is_svg = {is_svg}")
+            
+            if is_svg:
+                # SVGファイルの場合はQSvgRendererを使用
+                svg_renderer = QSvgRenderer(resolved_path)
+                if svg_renderer.isValid():
+                    write_debug_log(f"display_custom_icon: SVGファイル読み込み成功")
+                    # アイコンサイズに合わせてピクスマップを作成
+                    icon_size = self.icon_label.width()
+                    target_size = icon_size - 4
+                    
+                    pixmap = QPixmap(target_size, target_size)
+                    pixmap.fill(Qt.GlobalColor.transparent)
+                    
+                    painter = QPainter(pixmap)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                    svg_renderer.render(painter)
+                    painter.end()
+                    
+                    # テスト: 円形マスクを無効にして直接設定
+                    write_debug_log(f"display_custom_icon: SVGピクスマップを直接設定（円形マスクなし）")
+                    self.icon_label.setPixmap(pixmap)
+                    write_debug_log(f"display_custom_icon: SVGピクスマップを設定完了")
+                else:
+                    write_debug_log(f"display_custom_icon: SVGファイル読み込み失敗")
+                    self.display_item_count()
+                    return
             else:
-                # 読み込み失敗時はアイテム数表示にフォールバック
-                self.display_item_count()
+                # 通常の画像ファイル
+                pixmap = QPixmap(resolved_path)
+                write_debug_log(f"display_custom_icon: pixmap.isNull() = {pixmap.isNull()}")
+                if not pixmap.isNull():
+                    write_debug_log(f"display_custom_icon: アイコン読み込み成功、表示中...")
+                    # アイコンサイズに合わせてスケール
+                    icon_size = self.icon_label.width()
+                    target_size = icon_size - 4
+                    scaled_pixmap = pixmap.scaled(target_size, target_size, 
+                                                Qt.AspectRatioMode.KeepAspectRatio,
+                                                Qt.TransformationMode.SmoothTransformation)
+                    
+                    # 円形にマスクされたピクスマップを作成
+                    circular_pixmap = self.create_circular_pixmap(scaled_pixmap, target_size)
+                    self.icon_label.setPixmap(circular_pixmap)
+                    write_debug_log(f"display_custom_icon: ピクスマップを設定完了")
+                else:
+                    # 読み込み失敗時はアイテム数表示にフォールバック
+                    write_debug_log(f"display_custom_icon: 画像ファイル読み込み失敗")
+                    self.display_item_count()
+                    return
+                    
+            # 背景スタイルを設定（アイコン用）
+            icon_size = self.icon_label.width()
+            border_radius = icon_size // 2
+            self.icon_label.setStyleSheet(f"""
+                QLabel {{
+                    background-color: rgba(255, 255, 255, 200);
+                    border-radius: {border_radius}px;
+                    border: 2px solid rgba(200, 200, 200, 150);
+                }}
+            """)
+            write_debug_log(f"display_custom_icon: スタイル設定完了")
+            
+            # テキストをクリア（数字表示を消去）
+            self.icon_label.setText("")
+            write_debug_log(f"display_custom_icon: テキストをクリア")
+            
+            # 強制的に更新を実行
+            self.icon_label.update()
+            self.update()
+            write_debug_log(f"display_custom_icon: 更新処理完了")
         except Exception as e:
-            print(f"カスタムアイコン表示エラー: {e}")
+            from ui.icon_selector_dialog import write_debug_log
+            write_debug_log(f"display_custom_icon: エラー = {e}")
             self.display_item_count()
             
     def create_circular_pixmap(self, source_pixmap, size):
         """ピクスマップを円形にマスクする"""
+        from ui.icon_selector_dialog import write_debug_log
+        
+        write_debug_log(f"create_circular_pixmap: source_pixmap.isNull() = {source_pixmap.isNull()}")
+        write_debug_log(f"create_circular_pixmap: size = {size}")
+        write_debug_log(f"create_circular_pixmap: source_pixmap size = {source_pixmap.width()}x{source_pixmap.height()}")
         
         # 正方形のピクスマップを作成
         circular_pixmap = QPixmap(size, size)
@@ -180,13 +242,22 @@ class GroupIcon(QWidget):
         # 画像を中央に描画
         x = (size - source_pixmap.width()) // 2
         y = (size - source_pixmap.height()) // 2
+        write_debug_log(f"create_circular_pixmap: 描画位置 = ({x}, {y})")
         painter.drawPixmap(x, y, source_pixmap)
         
         painter.end()
+        
+        write_debug_log(f"create_circular_pixmap: 完成したピクスマップ.isNull() = {circular_pixmap.isNull()}")
         return circular_pixmap
             
     def display_item_count(self):
-        """アイテム数を表示"""
+        """アイテム数を表示（カスタムアイコンがない場合のみ）"""
+        # カスタムアイコンがある場合は何もしない
+        if self.custom_icon_path:
+            from ui.icon_selector_dialog import write_debug_log
+            write_debug_log(f"display_item_count: カスタムアイコンがあるため処理をスキップ")
+            return
+            
         # アイテム数を表示
         item_count = len(self.items)
         self.icon_label.setText(str(item_count))
