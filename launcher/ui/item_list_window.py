@@ -68,7 +68,8 @@ class ItemWidget(QFrame):
         
         # ファイルの実際のアイコンを取得
         try:
-            file_icon = icon_extractor.get_file_icon(self.item_info['path'], 24)
+            original_path = self.item_info.get('original_path')
+            file_icon = icon_extractor.get_file_icon(self.item_info['path'], 24, original_path)
             if not file_icon.isNull():
                 pixmap = file_icon.pixmap(24, 24)
                 icon_label.setPixmap(pixmap)

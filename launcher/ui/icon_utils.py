@@ -16,16 +16,23 @@ class IconExtractor:
         self.icon_provider = QFileIconProvider()
         self.icon_cache = {}  # アイコンキャッシュ
         
-    def get_file_icon(self, file_path, size=32):
+    def get_file_icon(self, file_path, size=32, original_path=None):
         """ファイルのアイコンを取得"""
         try:
+            # Chrome アプリの場合は original_path (ショートカットファイル) からアイコンを取得
+            icon_source_path = file_path
+            if (original_path and original_path.lower().endswith('.lnk') and
+                ('chrome.exe' in file_path.lower() or 'chrome_proxy.exe' in file_path.lower())):
+                icon_source_path = original_path
+                print(f"[DEBUG] Chrome アプリアイコン取得: {original_path}")
+            
             # キャッシュをチェック
-            cache_key = f"{file_path}_{size}"
+            cache_key = f"{icon_source_path}_{size}"
             if cache_key in self.icon_cache:
                 return self.icon_cache[cache_key]
                 
             # QtのFileIconProviderを使用
-            icon = self._get_qt_icon(file_path, size)
+            icon = self._get_qt_icon(icon_source_path, size)
                 
             # キャッシュに保存
             if not icon.isNull():
