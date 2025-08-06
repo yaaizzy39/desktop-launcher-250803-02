@@ -243,7 +243,10 @@ class ItemWidget(QFrame):
         
         # カスタムデータのみを設定（ファイルURLは設定しない）
         # これにより標準のファイルコピー動作を防ぐ
-        mime_data.setData("application/x-launcher-item", str(self.item_info['path']).encode('utf-8'))
+        # アイテム全体の情報をJSON形式で送信（original_path情報を保持するため）
+        import json
+        item_data = json.dumps(self.item_info)
+        mime_data.setData("application/x-launcher-item", item_data.encode('utf-8'))
         
         # プレーンテキストとしてもパスを設定（フォールバック用）
         mime_data.setText(self.item_info['path'])
@@ -292,7 +295,13 @@ class ItemWidget(QFrame):
         mime_data = QMimeData()
         
         # 並び替え用のカスタムデータを設定
-        mime_data.setData("application/x-launcher-reorder", str(id(self)).encode('utf-8'))
+        # アイテム全体の情報をJSON形式で送信（Chrome アプリ対応のため）
+        import json
+        reorder_data = {
+            'widget_id': str(id(self)),
+            'item_info': self.item_info
+        }
+        mime_data.setData("application/x-launcher-reorder", json.dumps(reorder_data).encode('utf-8'))
         
         drag.setMimeData(mime_data)
         
@@ -1364,15 +1373,29 @@ class ItemListWindow(QWidget):
             
             # 並び替えドラッグの場合、ドラッグ元が自分のリストかチェック
             if event.mimeData().hasFormat("application/x-launcher-reorder"):
-                widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
-                is_from_this_list = False
-                
-                # 自分のリスト内のウィジェットかチェック
-                for i in range(self.items_layout.count() - 1):  # ストレッチを除く
-                    widget = self.items_layout.itemAt(i).widget()
-                    if widget and str(id(widget)) == widget_id:
-                        is_from_this_list = True
-                        break
+                try:
+                    import json
+                    reorder_data = json.loads(event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8'))
+                    widget_id = reorder_data['widget_id']
+                    is_from_this_list = False
+                    
+                    # 自分のリスト内のウィジェットかチェック
+                    for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                        widget = self.items_layout.itemAt(i).widget()
+                        if widget and str(id(widget)) == widget_id:
+                            is_from_this_list = True
+                            break
+                except (json.JSONDecodeError, KeyError):
+                    # フォールバック：従来の処理
+                    widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
+                    is_from_this_list = False
+                    
+                    # 自分のリスト内のウィジェットかチェック
+                    for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                        widget = self.items_layout.itemAt(i).widget()
+                        if widget and str(id(widget)) == widget_id:
+                            is_from_this_list = True
+                            break
                 
                 # 自分のリストからのドラッグの場合のみ受け入れ
                 if is_from_this_list:
@@ -1422,42 +1445,74 @@ class ItemListWindow(QWidget):
         
         # 並び替えドロップの場合
         if event.mimeData().hasFormat("application/x-launcher-reorder"):
-            widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
-            
-            # ドロップ位置からインデックスを計算
-            drop_y = event.position().y()
-            target_index = self.calculate_drop_index(drop_y)
-            
-            # ドラッグされたウィジェットを見つける
-            dragged_widget = None
-            dragged_item_path = None
-            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
-                widget = self.items_layout.itemAt(i).widget()
-                if widget and str(id(widget)) == widget_id:
-                    dragged_widget = widget
-                    dragged_item_path = widget.item_info['path']
-                    break
-                    
-            # パスで並び替えを実行（より確実）
-            if dragged_item_path:
-                self.reorder_item_by_path(dragged_item_path, target_index)
+            try:
+                import json
+                reorder_data = json.loads(event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8'))
+                widget_id = reorder_data['widget_id']
+                dragged_item_info = reorder_data['item_info']
+                
+                # ドロップ位置からインデックスを計算
+                drop_y = event.position().y()
+                target_index = self.calculate_drop_index(drop_y)
+                
+                print(f"[DEBUG] 並び替えドロップ - アイテム情報: {dragged_item_info}, 目標インデックス: {target_index}")
+                
+                # アイテム情報で並び替えを実行（より確実）
+                self.reorder_item_by_item_info(dragged_item_info, target_index)
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"[DEBUG] 並び替えデータ解析エラー、フォールバック処理: {e}")
+                # フォールバック：従来の処理
+                widget_id = event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8')
+                drop_y = event.position().y()
+                target_index = self.calculate_drop_index(drop_y)
+                
+                # ドラッグされたウィジェットを見つける
+                dragged_item_path = None
+                for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                    widget = self.items_layout.itemAt(i).widget()
+                    if widget and str(id(widget)) == widget_id:
+                        dragged_item_path = widget.item_info['path']
+                        break
+                        
+                if dragged_item_path:
+                    self.reorder_item_by_path(dragged_item_path, target_index)
                 
             event.acceptProposedAction()
             
         # リスト間移動の場合
         elif event.mimeData().hasFormat("application/x-launcher-item"):
-            item_path = event.mimeData().data("application/x-launcher-item").data().decode('utf-8')
-            
-            # 既に存在するかチェック
-            for item in self.group_icon.items:
-                if item['path'] == item_path:
-                    return  # 重複なので追加しない
-                    
-            # 他のグループから削除（常に実行 - アクションに関係なく移動として処理）
-            self.remove_item_from_other_groups(item_path)
-            
-            # このグループに追加
-            self.group_icon.add_item(item_path)
+            import json
+            try:
+                # JSON形式のアイテム情報を受信
+                item_data = event.mimeData().data("application/x-launcher-item").data().decode('utf-8')
+                item_info = json.loads(item_data)
+                item_path = item_info['path']
+                
+                print(f"[DEBUG] リスト間移動 - 受信したアイテム情報: {item_info}")
+                
+                # 既に存在するかチェック
+                for item in self.group_icon.items:
+                    if item['path'] == item_path:
+                        print(f"[DEBUG] 重複により追加をスキップ: {item_path}")
+                        return  # 重複なので追加しない
+                        
+                # 他のグループから削除（常に実行 - アクションに関係なく移動として処理）
+                print(f"[DEBUG] 他のグループからアイテムを削除中...")
+                self.remove_item_from_other_groups_by_item_info(item_info)
+                
+                # このグループに追加（完全なアイテム情報を使用）
+                print(f"[DEBUG] このグループにアイテムを追加中...")
+                self.group_icon.add_item_with_info(item_info)
+                print(f"[DEBUG] アイテム追加完了")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"[DEBUG] JSON解析エラー、フォールバック処理: {e}")
+                # フォールバック：従来の処理（パスのみ）
+                item_path = event.mimeData().data("application/x-launcher-item").data().decode('utf-8')
+                self.remove_item_from_other_groups(item_path)
+                self.group_icon.add_item(item_path)
+                
             # UI更新を強制的に実行
             self.refresh_items()
             event.acceptProposedAction()
@@ -1482,6 +1537,15 @@ class ItemListWindow(QWidget):
             for group_icon in app.group_icons:
                 if group_icon != self.group_icon:
                     group_icon.remove_item(item_path)
+                    
+    def remove_item_from_other_groups_by_item_info(self, item_info):
+        """他のグループから指定されたアイテムを削除（アイテム情報で検索）"""
+        # QApplicationインスタンスから全てのグループアイコンを取得
+        app = QApplication.instance()
+        if hasattr(app, 'group_icons'):
+            for group_icon in app.group_icons:
+                if group_icon != self.group_icon:
+                    group_icon.remove_specific_item(item_info)
                     
     def adjust_window_height(self):
         """アイテム数に応じてウィンドウの高さを調整"""
@@ -1862,3 +1926,38 @@ class ItemListWindow(QWidget):
             
         except Exception as e:
             print(f"パス指定並び替えエラー: {e}")
+            
+    def reorder_item_by_item_info(self, item_info, new_index):
+        """アイテム情報を指定してアイテムの並び順を変更（Chrome アプリ対応）"""
+        try:
+            # 現在のアイテムのインデックスを取得（アイテム情報全体で比較）
+            current_index = -1
+            for i, existing_item in enumerate(self.group_icon.items):
+                # 完全一致で検索（Chrome アプリでも正確に特定）
+                if existing_item == item_info:
+                    current_index = i
+                    break
+                    
+            if current_index == -1:
+                print(f"[DEBUG] アイテムが見つからない: {item_info}")
+                return  # アイテムが見つからない
+                
+            # 同じ位置の場合は何もしない
+            if current_index == new_index:
+                print(f"[DEBUG] 同じ位置なので並び替えをスキップ: {current_index}")
+                return
+                
+            # アイテムを移動
+            moved_item = self.group_icon.items.pop(current_index)
+            self.group_icon.items.insert(new_index, moved_item)
+            
+            # UIを更新
+            self.refresh_items()
+            
+            # データを保存
+            self.group_icon.items_changed.emit()
+            
+            print(f"アイテム情報指定並び替え: {current_index} -> {new_index} ({item_info.get('name', 'Unknown')})")
+            
+        except Exception as e:
+            print(f"アイテム情報指定並び替えエラー: {e}")

@@ -625,6 +625,28 @@ class GroupIcon(QWidget):
         print(f"[DEBUG] add_item完了, アイテム数: {len(self.items)}")
         self.items_changed.emit()
         
+    def add_item_with_info(self, item_info):
+        """完全なアイテム情報を使ってアイテムを追加（グループ間移動用）"""
+        print(f"[DEBUG] add_item_with_info called with: {item_info}")
+        
+        # 重複チェック
+        for item in self.items:
+            if item['path'] == item_info['path']:
+                # Chrome アプリの場合は original_path も比較
+                if ('original_path' in item_info and 'original_path' in item and 
+                    item['original_path'] == item_info['original_path']):
+                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info}")
+                    return
+                elif 'original_path' not in item_info:
+                    print(f"[DEBUG] 重複により追加をスキップ: {item_info}")
+                    return
+        
+        # アイテムを追加（情報をそのまま使用）
+        self.items.append(item_info.copy())  # コピーして追加
+        self.update_display()
+        print(f"[DEBUG] add_item_with_info完了, アイテム数: {len(self.items)}")
+        self.items_changed.emit()
+        
     def remove_item(self, item_path):
         """アイテムを削除"""
         print(f"[DEBUG] remove_item called with: {item_path}")

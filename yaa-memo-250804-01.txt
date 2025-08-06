@@ -6,6 +6,8 @@ PyInstallerでのビルドコマンド
 pyinstaller --onefile --windowed --icon=app_icon.ico launcher/main.py
 
 
+
+
 手動でPyInstallerビルドを実行する手順をお教えします。
 
   手動ビルド手順
@@ -60,6 +62,12 @@ POwershellの場合
   コマンドを使用してください：
 
   pyinstaller main.spec
+
+------------------
+【一時的に下記でビルドしてた】
+  pyinstaller main.spec --distpath=dist2 --workpath=build2
+  ------------------------
+
 
   または、main.specを使わずにコマンドラインで全て指定する場合は：
 
