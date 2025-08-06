@@ -629,17 +629,24 @@ class GroupIcon(QWidget):
         """完全なアイテム情報を使ってアイテムを追加（グループ間移動用）"""
         print(f"[DEBUG] add_item_with_info called with: {item_info}")
         
-        # 重複チェック
+        # 重複チェック：Chrome アプリかどうかを判定
+        incoming_is_chrome_app = ('chrome.exe' in item_info['path'].lower() or 'chrome_proxy.exe' in item_info['path'].lower())
+        
         for item in self.items:
-            if item['path'] == item_info['path']:
-                # Chrome アプリの場合は original_path も比較
-                if ('original_path' in item_info and 'original_path' in item and 
+            existing_is_chrome_app = ('chrome.exe' in item['path'].lower() or 'chrome_proxy.exe' in item['path'].lower())
+            
+            if incoming_is_chrome_app and existing_is_chrome_app:
+                # 両方がChrome アプリの場合は original_path で比較
+                if (item_info.get('original_path') and item.get('original_path') and
                     item['original_path'] == item_info['original_path']):
-                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info}")
+                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info.get('original_path')}")
                     return
-                elif 'original_path' not in item_info:
-                    print(f"[DEBUG] 重複により追加をスキップ: {item_info}")
+            elif not incoming_is_chrome_app and not existing_is_chrome_app:
+                # 両方が通常アプリの場合は path で比較
+                if item['path'] == item_info['path']:
+                    print(f"[DEBUG] 通常アプリ重複により追加をスキップ: {item_info['path']}")
                     return
+            # Chrome アプリと通常アプリの組み合わせの場合は重複とみなさない
         
         # アイテムを追加（情報をそのまま使用）
         self.items.append(item_info.copy())  # コピーして追加
