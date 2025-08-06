@@ -1427,10 +1427,23 @@ class ItemListWindow(QWidget):
             drop_y = event.position().y()
             target_index = self.calculate_drop_index(drop_y)
             
-            # プレビュー位置が変わった場合のみ更新
-            if target_index != self.drag_preview_index:
-                self.drag_preview_index = target_index
-                self.show_drag_preview(target_index)
+            # ドラッグ中のウィジェット情報を取得
+            try:
+                import json
+                reorder_data = json.loads(event.mimeData().data("application/x-launcher-reorder").data().decode('utf-8'))
+                widget_id = reorder_data['widget_id']
+                dragged_item_info = reorder_data['item_info']
+                
+                # プレビュー位置が変わった場合のみ更新
+                if target_index != self.drag_preview_index:
+                    self.drag_preview_index = target_index
+                    self.show_drag_preview_with_item_info(target_index, dragged_item_info)
+                    
+            except (json.JSONDecodeError, KeyError):
+                # フォールバック：従来の処理
+                if target_index != self.drag_preview_index:
+                    self.drag_preview_index = target_index
+                    self.show_drag_preview(target_index)
                 
             event.acceptProposedAction()
         else:
@@ -1491,11 +1504,21 @@ class ItemListWindow(QWidget):
                 
                 print(f"[DEBUG] リスト間移動 - 受信したアイテム情報: {item_info}")
                 
-                # 既に存在するかチェック
+                # 既に存在するかチェック（Chromeアプリ対応）
+                is_chrome_app = ('chrome.exe' in item_path.lower() or 'chrome_proxy.exe' in item_path.lower())
+                
                 for item in self.group_icon.items:
-                    if item['path'] == item_path:
-                        print(f"[DEBUG] 重複により追加をスキップ: {item_path}")
-                        return  # 重複なので追加しない
+                    if is_chrome_app:
+                        # Chrome アプリの場合は original_path で重複チェック
+                        if (item.get('original_path') == item_info.get('original_path') and 
+                            item_info.get('original_path')):
+                            print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info.get('original_path')}")
+                            return  # 重複なので追加しない
+                    else:
+                        # 通常のアプリの場合は path で重複チェック
+                        if item['path'] == item_path:
+                            print(f"[DEBUG] 通常アプリ重複により追加をスキップ: {item_path}")
+                            return  # 重複なので追加しない
                         
                 # 他のグループから削除（常に実行 - アクションに関係なく移動として処理）
                 print(f"[DEBUG] 他のグループからアイテムを削除中...")
@@ -1729,6 +1752,62 @@ class ItemListWindow(QWidget):
         except Exception as e:
             print(f"ドラッグプレビューエラー: {e}")
             
+    def show_drag_preview_with_item_info(self, target_index, dragged_item_info):
+        """ドラッグプレビューを表示（アイテム情報ベース）"""
+        try:
+            # アイテム数チェック
+            item_count = len(self.group_icon.items)
+            if target_index < 0 or target_index > item_count:
+                return
+                
+            # 現在のウィジェットリストを取得
+            widgets = []
+            for i in range(self.items_layout.count() - 1):  # ストレッチを除く
+                widget = self.items_layout.itemAt(i).widget()
+                if widget and hasattr(widget, 'item_info'):
+                    widgets.append(widget)
+                    
+            if not widgets:
+                return
+                
+            # ドラッグ中のアイテムを探す（アイテム情報で特定）
+            dragged_widget = None
+            dragged_index = -1
+            
+            # アイテム情報で特定
+            for i, widget in enumerate(widgets):
+                # Chrome アプリの場合は original_path でも比較
+                if widget.item_info == dragged_item_info:
+                    dragged_widget = widget
+                    dragged_index = i
+                    print(f"[DEBUG] 完全一致でドラッグウィジェット特定: インデックス {i}")
+                    break
+                elif ('original_path' in widget.item_info and 'original_path' in dragged_item_info and
+                      widget.item_info.get('original_path') == dragged_item_info.get('original_path') and
+                      widget.item_info.get('name') == dragged_item_info.get('name')):
+                    dragged_widget = widget
+                    dragged_index = i
+                    print(f"[DEBUG] original_path一致でドラッグウィジェット特定: インデックス {i}")
+                    break
+                    
+            if dragged_widget is None:
+                print(f"[DEBUG] ドラッグ中のウィジェットが見つからない: {dragged_item_info}")
+                return
+                
+            print(f"[DEBUG] ドラッグ中ウィジェット特定: {dragged_index} -> {target_index}")
+                
+            # 同じ位置なら何もしない
+            if dragged_index == target_index:
+                # 元の位置に戻す
+                self.reset_to_original_positions()
+                return
+                
+            # アニメーション付きで位置を変更
+            self.animate_reorder_preview(widgets, dragged_index, target_index)
+                        
+        except Exception as e:
+            print(f"アイテム情報ベースドラッグプレビューエラー: {e}")
+            
     def animate_reorder_preview(self, widgets, from_index, to_index):
         """アイテムの位置をアニメーション付きで変更"""
         try:
@@ -1936,6 +2015,13 @@ class ItemListWindow(QWidget):
                 # 完全一致で検索（Chrome アプリでも正確に特定）
                 if existing_item == item_info:
                     current_index = i
+                    print(f"[DEBUG] 完全一致でアイテム特定: インデックス {i}")
+                    break
+                elif ('original_path' in existing_item and 'original_path' in item_info and
+                      existing_item.get('original_path') == item_info.get('original_path') and
+                      existing_item.get('name') == item_info.get('name')):
+                    current_index = i
+                    print(f"[DEBUG] original_path一致でアイテム特定: インデックス {i}")
                     break
                     
             if current_index == -1:
