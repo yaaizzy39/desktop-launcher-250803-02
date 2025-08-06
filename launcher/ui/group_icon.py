@@ -164,9 +164,10 @@ class GroupIcon(QWidget):
                     svg_renderer.render(painter)
                     painter.end()
                     
-                    # テスト: 円形マスクを無効にして直接設定
-                    write_debug_log(f"display_custom_icon: SVGピクスマップを直接設定（円形マスクなし）")
-                    self.icon_label.setPixmap(pixmap)
+                    # SVGを円形にマスク
+                    write_debug_log(f"display_custom_icon: SVGピクスマップに円形マスクを適用")
+                    circular_pixmap = self.create_circular_pixmap(pixmap, target_size)
+                    self.icon_label.setPixmap(circular_pixmap)
                     write_debug_log(f"display_custom_icon: SVGピクスマップを設定完了")
                 else:
                     write_debug_log(f"display_custom_icon: SVGファイル読み込み失敗")
