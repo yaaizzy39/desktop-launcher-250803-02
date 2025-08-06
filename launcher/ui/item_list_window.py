@@ -475,13 +475,26 @@ class ItemWidget(QFrame):
             if not parent_list:
                 return
                 
-            # アイテムがまだリストに存在するかチェック
+            # アイテムがまだリストに存在するかチェック（Chrome アプリ対応）
             item_still_exists = False
             if parent_list.group_icon:
+                is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
+                               'chrome_proxy.exe' in self.item_info.get('path', '').lower())
+                
                 for item in parent_list.group_icon.items:
-                    if item['path'] == self.item_info['path']:
-                        item_still_exists = True
-                        break
+                    if is_chrome_app:
+                        # Chrome アプリの場合は original_path と name で比較
+                        if (item.get('original_path') == self.item_info.get('original_path') and
+                            item.get('name') == self.item_info.get('name')):
+                            item_still_exists = True
+                            print(f"[DEBUG] Chrome アプリ存在確認: {self.item_info.get('name')}")
+                            break
+                    else:
+                        # 通常アプリの場合は path で比較
+                        if item['path'] == self.item_info['path']:
+                            item_still_exists = True
+                            print(f"[DEBUG] 通常アプリ存在確認: {self.item_info.get('name')}")
+                            break
                         
             # アイテムがリストから削除されていない（つまり外部ドロップ）場合のみ処理
             if item_still_exists:
@@ -492,8 +505,19 @@ class ItemWidget(QFrame):
                     # 真の外部ドロップと判断してショートカットを作成
                     desktop_path = self.get_desktop_path()
                     if desktop_path:
+                        # Chrome アプリの場合は original_path を使用
+                        is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
+                                       'chrome_proxy.exe' in self.item_info.get('path', '').lower())
+                        
+                        if is_chrome_app and self.item_info.get('original_path'):
+                            target_path = self.item_info['original_path']
+                            print(f"[DEBUG] Chrome アプリショートカット作成: {target_path}")
+                        else:
+                            target_path = self.item_info['path']
+                            print(f"[DEBUG] 通常アプリショートカット作成: {target_path}")
+                        
                         shortcut_created = self.create_shortcut_at_position(
-                            self.item_info['path'], 
+                            target_path,
                             self.item_info['name'], 
                             desktop_path,
                             self.drop_position
@@ -523,12 +547,24 @@ class ItemWidget(QFrame):
                 while current_parent and not isinstance(current_parent, ItemListWindow):
                     current_parent = current_parent.parent()
                     
+                is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
+                               'chrome_proxy.exe' in self.item_info.get('path', '').lower())
+                
                 for group_icon in app.group_icons:
                     # 現在の親リスト以外をチェック
                     if current_parent and group_icon != current_parent.group_icon:
                         for item in group_icon.items:
-                            if item['path'] == self.item_info['path']:
-                                return True
+                            if is_chrome_app:
+                                # Chrome アプリの場合は original_path と name で比較
+                                if (item.get('original_path') == self.item_info.get('original_path') and
+                                    item.get('name') == self.item_info.get('name')):
+                                    print(f"[DEBUG] 他リストでChrome アプリ発見: {self.item_info.get('name')}")
+                                    return True
+                            else:
+                                # 通常アプリの場合は path で比較
+                                if item['path'] == self.item_info['path']:
+                                    print(f"[DEBUG] 他リストで通常アプリ発見: {self.item_info.get('name')}")
+                                    return True
             return False
         except Exception as e:
             print(f"他リスト移動チェックエラー: {e}")
