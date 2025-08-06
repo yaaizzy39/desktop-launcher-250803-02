@@ -34,8 +34,15 @@ def resolve_shortcut(file_path):
         }}
         """
         
+        # ウィンドウを表示しないようにcreationflagsを設定
+        import subprocess
+        creationflags = 0
+        if sys.platform == 'win32':
+            creationflags = subprocess.CREATE_NO_WINDOW
+        
         result = subprocess.run(['powershell', '-Command', ps_script], 
-                              capture_output=True, text=True, timeout=10)
+                              capture_output=True, text=True, timeout=10,
+                              creationflags=creationflags)
         
         if result.returncode == 0:
             target_path = result.stdout.strip()

@@ -474,6 +474,22 @@ class GroupIcon(QWidget):
             QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
+            # メインアプリケーションにグループ削除を通知
+            if self.main_app:
+                try:
+                    self.main_app.remove_group(self)
+                except Exception as e:
+                    print(f"グループ削除通知エラー: {e}")
+            
+            # リストウィンドウがある場合は閉じる
+            if hasattr(self, 'list_window') and self.list_window:
+                try:
+                    self.list_window.close()
+                    self.list_window.deleteLater()
+                except Exception as e:
+                    print(f"リストウィンドウ削除エラー: {e}")
+            
+            # 自身を削除
             self.close()
             self.deleteLater()
             

@@ -385,6 +385,17 @@ class LauncherApp(QApplication):
             
         self.data_manager.save_groups(groups_data)
         
+    def remove_group(self, group_icon):
+        """グループを削除"""
+        try:
+            if group_icon in self.group_icons:
+                self.group_icons.remove(group_icon)
+                # データを保存
+                self.save_groups()
+                print(f"グループ '{group_icon.name}' を削除しました")
+        except Exception as e:
+            print(f"グループ削除エラー: {e}")
+        
     def show_settings(self):
         """設定ウィンドウを表示"""
         if self.settings_window is None:
