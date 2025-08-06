@@ -20,7 +20,7 @@ class ItemWidget(QFrame):
     """個別アイテムを表示するウィジェット"""
     
     launch_requested = pyqtSignal(str)  # 起動要求シグナル
-    remove_requested = pyqtSignal(str)  # 削除要求シグナル
+    remove_requested = pyqtSignal(object)  # 削除要求シグナル
     reorder_requested = pyqtSignal(object, int)  # 並び替え要求シグナル (item_widget, new_index)
     
     def __init__(self, item_info, settings_manager=None):
@@ -612,8 +612,9 @@ class ItemWidget(QFrame):
                 parent_list = parent_list.parent()
                 
             if parent_list and parent_list.group_icon:
-                # グループアイコンからアイテムを削除
-                parent_list.group_icon.remove_item(item_path)
+                # このアイテム自体を削除対象として渡す
+                print(f"[DEBUG] アイテム削除要求: {self.item_info}")
+                parent_list.group_icon.remove_specific_item(self.item_info)
                 # リストを更新
                 parent_list.refresh_items()
                 print(f"アイテムを直接削除: {os.path.basename(item_path)}")
@@ -667,7 +668,7 @@ class ItemWidget(QFrame):
         
         # 削除アクション
         delete_action = QAction("削除", menu)
-        delete_action.triggered.connect(lambda: self.remove_requested.emit(self.item_info['path']))
+        delete_action.triggered.connect(lambda: self.remove_requested.emit(self.item_info))
         menu.addAction(delete_action)
         
         # アイテム情報表示アクション
@@ -1221,8 +1222,10 @@ class ItemListWindow(QWidget):
                 f"起動に失敗しました:\n{str(e)}"
             )
             
-    def remove_item(self, item_path):
+    def remove_item(self, target_item):
         """アイテムを削除"""
+        print(f"[DEBUG] remove_item called with target_item: {target_item}")
+        
         # ダイアログ表示フラグを設定（全ての自動非表示を無効化）
         self.dialog_showing = True
         
@@ -1230,7 +1233,13 @@ class ItemListWindow(QWidget):
         msg_box = QMessageBox()
         msg_box.setParent(None)  # 親を指定しない（独立したダイアログ）
         msg_box.setWindowTitle("確認")
-        msg_box.setText(f"このアイテムをリストから削除しますか?\n{os.path.basename(item_path)}")
+        
+        # 渡されたアイテムオブジェクトから情報を取得
+        display_name = target_item.get('name', os.path.basename(target_item.get('path', '')))
+        item_path = target_item.get('path', '')
+        
+        msg_box.setText(f"このアイテムをリストから削除しますか?\n{display_name}")
+        print(f"[DEBUG] 削除確認ダイアログ: {display_name} (path: {item_path})")
         msg_box.setIcon(QMessageBox.Icon.Question)
         
         # ダイアログの最前面表示設定をアイコン設定に合わせる
@@ -1268,7 +1277,12 @@ class ItemListWindow(QWidget):
         
         # 結果をチェック
         if msg_box.clickedButton() == yes_button:
-            self.group_icon.remove_item(item_path)
+            print(f"[DEBUG] 削除が確認されました: {display_name}")
+            print(f"[DEBUG] 削除対象アイテム: {target_item}")
+            
+            # 渡されたアイテムオブジェクトを直接削除
+            self.group_icon.remove_specific_item(target_item)
+            
             # 削除後にリストを再表示・更新
             self.refresh_items()
             

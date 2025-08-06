@@ -627,7 +627,45 @@ class GroupIcon(QWidget):
         
     def remove_item(self, item_path):
         """アイテムを削除"""
-        self.items = [item for item in self.items if item['path'] != item_path]
+        print(f"[DEBUG] remove_item called with: {item_path}")
+        print(f"[DEBUG] 削除前のアイテム数: {len(self.items)}")
+        
+        # Chrome アプリかどうかを判定
+        is_chrome_app = ('chrome.exe' in item_path.lower() or 'chrome_proxy.exe' in item_path.lower())
+        
+        if is_chrome_app:
+            # Chrome アプリの場合は original_path で削除
+            # まず該当するアイテムを特定するため、pathが一致するアイテムから削除対象を探す
+            target_item = None
+            for item in self.items:
+                if item['path'] == item_path:
+                    # 複数のChrome アプリがある場合、最初の1つだけを削除対象にする
+                    target_item = item
+                    break
+            
+            if target_item:
+                print(f"[DEBUG] Chrome アプリ削除: original_path={target_item.get('original_path')}")
+                self.items = [item for item in self.items if item != target_item]
+            else:
+                print(f"[DEBUG] 削除対象のChrome アプリが見つからない")
+        else:
+            # 通常のアプリの場合は path で削除
+            print(f"[DEBUG] 通常アプリ削除: {item_path}")
+            self.items = [item for item in self.items if item['path'] != item_path]
+        
+        print(f"[DEBUG] 削除後のアイテム数: {len(self.items)}")
+        self.update_display()
+        self.items_changed.emit()
+        
+    def remove_specific_item(self, target_item):
+        """特定のアイテムオブジェクトを削除（Chrome アプリ用）"""
+        print(f"[DEBUG] remove_specific_item called with: {target_item}")
+        print(f"[DEBUG] 削除前のアイテム数: {len(self.items)}")
+        
+        # アイテムオブジェクト全体で比較して削除
+        self.items = [item for item in self.items if item != target_item]
+        
+        print(f"[DEBUG] 削除後のアイテム数: {len(self.items)}")
         self.update_display()
         self.items_changed.emit()
         
