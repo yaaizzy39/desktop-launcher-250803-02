@@ -495,56 +495,134 @@ class GroupIcon(QWidget):
             
     def dragEnterEvent(self, event):
         """ドラッグエンターイベント"""
-        if event.mimeData().hasUrls():
+        print(f"[DEBUG] dragEnterEvent called")
+        
+        mime_data = event.mimeData()
+        print(f"[DEBUG] mimeData.hasUrls(): {mime_data.hasUrls()}")
+        
+        if mime_data.hasUrls():
+            urls = mime_data.urls()
+            print(f"[DEBUG] URLs count: {len(urls)}")
+            for i, url in enumerate(urls):
+                print(f"[DEBUG] URL {i}: {url.toString()}")
+                print(f"[DEBUG] localFile {i}: {url.toLocalFile()}")
+            
             # ファイルやフォルダのドロップを受け入れ
             event.acceptProposedAction()
             self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
+            print(f"[DEBUG] drag accepted")
+        else:
+            print(f"[DEBUG] mimeData has no URLs")
+            # その他のフォーマットも確認
+            formats = mime_data.formats()
+            print(f"[DEBUG] available formats: {formats}")
+            event.ignore()
+            
+    def dragMoveEvent(self, event):
+        """ドラッグムーブイベント"""
+        print(f"[DEBUG] dragMoveEvent called")
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
         else:
             event.ignore()
             
     def dragLeaveEvent(self, event):
         """ドラッグリーブイベント"""
+        print(f"[DEBUG] dragLeaveEvent called")
         self.setStyleSheet("")
         
     def dropEvent(self, event):
         """ドロップイベント"""
+        print(f"[DEBUG] dropEvent called")
         self.setStyleSheet("")
         
         if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
+            print(f"[DEBUG] mimeData has URLs: {len(event.mimeData().urls())} URLs")
+            for i, url in enumerate(event.mimeData().urls()):
                 file_path = url.toLocalFile()
+                print(f"[DEBUG] URL {i}: {url.toString()}")
+                print(f"[DEBUG] localFile: {file_path}")
                 if file_path:
                     self.add_item(file_path)
+                else:
+                    print(f"[DEBUG] localFile is empty for URL: {url.toString()}")
                     
             event.acceptProposedAction()
             self.items_changed.emit()
         else:
+            print(f"[DEBUG] mimeData has no URLs")
+            # MimeDataの詳細を確認
+            mime_data = event.mimeData()
+            formats = mime_data.formats()
+            print(f"[DEBUG] available formats: {formats}")
+            for format in formats:
+                data = mime_data.data(format)
+                print(f"[DEBUG] format {format}: {data.data()[:100]}...")
             event.ignore()
             
     def add_item(self, file_path):
         """アイテムを追加"""
+        print(f"[DEBUG] add_item called with: {file_path}")
+        
+        # ファイルが存在するかチェック
+        if not os.path.exists(file_path):
+            print(f"[DEBUG] ファイルが存在しません: {file_path}")
+            return
+            
+        print(f"[DEBUG] ファイル存在確認OK: {file_path}")
+        
         # ショートカットの場合はリンク先を解決
         resolved_path = resolve_shortcut(file_path)
+        print(f"[DEBUG] resolve_shortcut結果: {file_path} -> {resolved_path}")
         
-        # 既に存在するかチェック（解決後のパスで）
+        # 実際に使用するパスを決定
+        # ショートカットファイル(.lnk)で解決されたパスが存在しない場合は、
+        # 元のショートカットファイルを使用する（ChromeアプリやWebアプリの場合）
+        if file_path.lower().endswith('.lnk'):
+            if resolved_path != file_path and os.path.exists(resolved_path):
+                # 解決されたパスが存在する場合は解決されたパスを使用
+                actual_path = resolved_path
+                print(f"[DEBUG] ショートカット解決成功: {file_path} -> {resolved_path}")
+            else:
+                # 解決されたパスが存在しないか、解決に失敗した場合は元のショートカットを使用
+                actual_path = file_path
+                print(f"[DEBUG] ショートカットファイルをそのまま使用: {file_path}")
+        else:
+            actual_path = resolved_path
+            print(f"[DEBUG] 通常ファイル使用: {actual_path}")
+        
+        # 重複チェック：Chrome アプリの場合は original_path でチェック、それ以外は path でチェック
+        is_chrome_app = ('chrome.exe' in actual_path.lower() or 'chrome_proxy.exe' in actual_path.lower())
+        
         for item in self.items:
-            if item['path'] == resolved_path:
-                return  # 重複なので追加しない
+            if is_chrome_app:
+                # Chrome アプリの場合は original_path で重複チェック
+                if item.get('original_path') == file_path:
+                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {file_path}")
+                    return
+            else:
+                # 通常のアプリの場合は path で重複チェック
+                if item['path'] == actual_path:
+                    print(f"[DEBUG] 重複により追加をスキップ: {actual_path}")
+                    return
                 
         # 表示名を取得（ショートカットの場合は.lnkを除去）
         display_name = get_display_name(file_path)
+        print(f"[DEBUG] 表示名: {display_name}")
         
         # アイテム情報を作成
         item_info = {
-            'path': resolved_path,  # 解決後のパスを保存
+            'path': actual_path,  # 実際に使用するパスを保存
             'name': display_name,   # 表示用の名前
-            'type': 'folder' if os.path.isdir(resolved_path) else 'file',
+            'type': 'folder' if os.path.isdir(actual_path) else 'file',
             'original_path': file_path,  # 元のパス（ショートカットの場合のため）
             'checked': True  # デフォルトでチェック状態
         }
         
+        print(f"[DEBUG] アイテム追加: {item_info}")
         self.items.append(item_info)
         self.update_display()
+        print(f"[DEBUG] add_item完了, アイテム数: {len(self.items)}")
         self.items_changed.emit()
         
     def remove_item(self, item_path):

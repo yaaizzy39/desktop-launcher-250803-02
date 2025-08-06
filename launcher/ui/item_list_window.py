@@ -171,9 +171,12 @@ class ItemWidget(QFrame):
         
     def mousePressEvent(self, event):
         """マウスプレスイベント"""
+        print(f"[DEBUG] ItemWidget mousePressEvent: button={event.button()}")
         if event.button() == Qt.MouseButton.LeftButton:
+            print(f"[DEBUG] 左クリック検出")
             self.drag_start_position = event.position().toPoint()
         elif event.button() == Qt.MouseButton.RightButton:
+            print(f"[DEBUG] 右クリック検出")
             # 右クリック時はリストが隠れないようにフラグを設定
             parent_list = self.parent()
             while parent_list and not isinstance(parent_list, ItemListWindow):
@@ -203,15 +206,30 @@ class ItemWidget(QFrame):
                 
     def mouseReleaseEvent(self, event):
         """マウスリリースイベント"""
+        print(f"[DEBUG] ItemWidget mouseReleaseEvent: button={event.button()}")
         if event.button() == Qt.MouseButton.LeftButton:
+            print(f"[DEBUG] 左クリックリリース検出")
             if self.drag_start_position is not None:
                 # ドラッグ距離をチェック
                 distance = (event.position().toPoint() - self.drag_start_position).manhattanLength()
                 if distance < QApplication.startDragDistance():
                     # クリックとして処理（起動）
-                    self.launch_requested.emit(self.item_info['path'])
+                    # ショートカットファイルの場合は元のショートカットファイルを起動
+                    if 'original_path' in self.item_info and self.item_info['original_path'].lower().endswith('.lnk'):
+                        launch_path = self.item_info['original_path']
+                        print(f"[DEBUG] ショートカットファイルを起動: {launch_path}")
+                    else:
+                        launch_path = self.item_info['path']
+                        print(f"[DEBUG] 通常ファイルを起動: {launch_path}")
+                    self.launch_requested.emit(launch_path)
                     
                 self.drag_start_position = None
+        elif event.button() == Qt.MouseButton.RightButton:
+            print(f"[DEBUG] 右クリックリリース検出 - コンテキストメニューを表示")
+            # 右クリックメニューを表示（ウィジェット内の位置をグローバル座標に変換）
+            global_pos = self.mapToGlobal(event.position().toPoint())
+            print(f"[DEBUG] ローカル位置: {event.position().toPoint()}, グローバル位置: {global_pos}")
+            self.show_context_menu(global_pos)
         super().mouseReleaseEvent(event)
         
     def start_drag(self):
@@ -606,6 +624,10 @@ class ItemWidget(QFrame):
         
     def show_context_menu(self, position):
         """右クリックコンテキストメニューを表示"""
+        print(f"[DEBUG] show_context_menu が呼び出されました")
+        print(f"[DEBUG] position: {position}")
+        print(f"[DEBUG] item_info: {self.item_info}")
+        
         # メニュー表示中はリストを隠さないようにフラグを設定
         parent_list = self.parent()
         while parent_list and not isinstance(parent_list, ItemListWindow):
@@ -635,8 +657,10 @@ class ItemWidget(QFrame):
         
         # ファイルの場所を開くアクション
         open_location_action = QAction("ファイルの場所を開く", menu)
-        open_location_action.triggered.connect(self.open_file_location)
+        print(f"[DEBUG] ファイルの場所を開くアクション作成")
+        open_location_action.triggered.connect(lambda: self.debug_open_file_location())
         menu.addAction(open_location_action)
+        print(f"[DEBUG] メニューにファイルの場所を開くアクションを追加")
         
         menu.addSeparator()
         
@@ -651,39 +675,72 @@ class ItemWidget(QFrame):
         menu.addAction(info_action)
         
         # メニューを表示
-        global_pos = self.mapToGlobal(position)
-        action = menu.exec(global_pos)
+        print(f"[DEBUG] メニューを位置 {position} に表示")
+        menu.exec(position)
         
         # メニュー終了後にフラグを解除（選択・キャンセル問わず）
         if parent_list:
             parent_list.dialog_showing = False
         
+    def debug_open_file_location(self):
+        """デバッグ用のファイルの場所を開くメソッド"""
+        print(f"[DEBUG] debug_open_file_location が呼び出されました!!!")
+        self.open_file_location()
+    
     def open_file_location(self):
         """ファイルの場所をエクスプローラーで開く"""
+        print(f"[DEBUG] open_file_location が呼び出されました")
+        print(f"[DEBUG] item_info の内容: {self.item_info}")
+        
         try:
-            file_path = self.item_info['path']
+            # Chrome アプリの場合のみ original_path を使用
+            # Chrome アプリの特徴: pathがchrome.exeかchrome_proxy.exeを含む場合
+            is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
+                           'chrome_proxy.exe' in self.item_info.get('path', '').lower())
+            
+            if (is_chrome_app and 'original_path' in self.item_info and 
+                self.item_info['original_path'].lower().endswith('.lnk')):
+                target_path = self.item_info['original_path']
+                print(f"[DEBUG] Chrome アプリ - 元のショートカットパスを使用: {target_path}")
+            else:
+                target_path = self.item_info['path']
+                print(f"[DEBUG] 通常のパスを使用: {target_path}")
+            
+            print(f"[DEBUG] target_path 決定: {target_path}")
+            print(f"[DEBUG] target_path 存在確認: {os.path.exists(target_path)}")
+            print(f"[DEBUG] is_chrome_app: {is_chrome_app}")
             
             # ファイルまたはフォルダが存在するかチェック
-            if not os.path.exists(file_path):
+            if not os.path.exists(target_path):
+                print(f"[DEBUG] target_path が存在しません: {target_path}")
                 QMessageBox.warning(
                     self, "エラー", 
-                    f"ファイルまたはフォルダが見つかりません:\n{file_path}"
+                    f"ファイルまたはフォルダが見つかりません:\n{target_path}"
                 )
                 return
             
+            print(f"[DEBUG] target_path がディレクトリか: {os.path.isdir(target_path)}")
+            
             # フォルダの場合はそのフォルダを開く
-            if os.path.isdir(file_path):
-                # フォルダをエクスプローラーで開く
-                subprocess.run(['explorer', file_path], check=False)
-                print(f"フォルダを開きました: {file_path}")
+            if os.path.isdir(target_path):
+                print(f"[DEBUG] フォルダを開く: {target_path}")
+                subprocess.run(['explorer', target_path], check=False)
             else:
                 # ファイルの場合は親フォルダを開いてファイルを選択
-                # /selectオプションでファイルを選択状態にする
-                subprocess.run(['explorer', '/select,', file_path], check=False)
-                print(f"ファイルの場所を開きました: {file_path}")
+                print(f"[DEBUG] ファイルを選択して親フォルダを開く: {target_path}")
+                
+                # 日本語パスの問題を回避するためshellを使用
+                escaped_path = target_path.replace('/', '\\')  # スラッシュをバックスラッシュに変換
+                cmd = f'explorer /select,"{escaped_path}"'
+                print(f"[DEBUG] 実行コマンド: {cmd}")
+                
+                result = subprocess.run(cmd, shell=True, check=False)
+                print(f"[DEBUG] コマンド実行結果: returncode={result.returncode}")
                 
         except Exception as e:
             print(f"ファイルの場所を開くエラー: {e}")
+            import traceback
+            traceback.print_exc()
             QMessageBox.critical(
                 self, "エラー", 
                 f"ファイルの場所を開くことができませんでした:\n{str(e)}"
