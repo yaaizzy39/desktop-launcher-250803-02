@@ -342,39 +342,65 @@ class AdvancedTab(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(15)
         
-        # データ管理
-        data_group = QGroupBox("データ管理")
-        data_layout = QVBoxLayout()
+        # 設定管理
+        settings_group = QGroupBox("設定管理")
+        settings_layout = QVBoxLayout()
         
-        # バックアップ設定
-        backup_layout = QFormLayout()
+        # エクスポート・インポートボタン
+        export_import_layout = QHBoxLayout()
+        
+        export_btn = QPushButton("エクスポート")
+        export_btn.clicked.connect(self.export_settings)
+        export_import_layout.addWidget(export_btn)
+        
+        import_btn = QPushButton("インポート")
+        import_btn.clicked.connect(self.import_settings)
+        export_import_layout.addWidget(import_btn)
+        
+        settings_layout.addLayout(export_import_layout)
+        
+        # 設定管理の説明
+        settings_help_label = QLabel("アプリケーションの全データ（設定値+グループ+アイテム）を\nファイルに保存・復元します。")
+        settings_help_label.setStyleSheet("color: #666; font-size: 11px; margin: 5px 0px;")
+        settings_help_label.setWordWrap(True)
+        
+        settings_layout.addWidget(settings_help_label)
+        settings_group.setLayout(settings_layout)
+        layout.addWidget(settings_group)
+        
+        # 自動バックアップ
+        backup_group = QGroupBox("自動バックアップ")
+        backup_layout = QVBoxLayout()
+        
+        # 最大バックアップ数設定
+        backup_settings_layout = QFormLayout()
         
         self.max_backups = QSpinBox()
         self.max_backups.setRange(1, 50)
         self.max_backups.valueChanged.connect(self.settings_changed.emit)
-        backup_layout.addRow("最大バックアップ数:", self.max_backups)
+        backup_settings_layout.addRow("最大バックアップ数:", self.max_backups)
         
-        data_layout.addLayout(backup_layout)
+        backup_layout.addLayout(backup_settings_layout)
         
-        # データ操作ボタン
-        button_layout = QHBoxLayout()
-        
-        export_btn = QPushButton("設定をエクスポート")
-        export_btn.clicked.connect(self.export_settings)
-        button_layout.addWidget(export_btn)
-        
-        import_btn = QPushButton("設定をインポート")
-        import_btn.clicked.connect(self.import_settings)
-        button_layout.addWidget(import_btn)
+        # 設定リセットボタン
+        reset_layout = QHBoxLayout()
         
         reset_btn = QPushButton("設定をリセット")
         reset_btn.clicked.connect(self.reset_settings)
         reset_btn.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
-        button_layout.addWidget(reset_btn)
+        reset_layout.addWidget(reset_btn)
+        reset_layout.addStretch()
         
-        data_layout.addLayout(button_layout)
-        data_group.setLayout(data_layout)
-        layout.addWidget(data_group)
+        backup_layout.addLayout(reset_layout)
+        
+        # 自動バックアップの説明
+        backup_help_label = QLabel("設定変更時に自動作成される設定ファイルのバックアップ保持数と、\n設定値のリセットを管理します。グループ・アイテムには影響しません。")
+        backup_help_label.setStyleSheet("color: #666; font-size: 11px; margin: 5px 0px;")
+        backup_help_label.setWordWrap(True)
+        
+        backup_layout.addWidget(backup_help_label)
+        backup_group.setLayout(backup_layout)
+        layout.addWidget(backup_group)
         
         layout.addStretch()
         self.setLayout(layout)
