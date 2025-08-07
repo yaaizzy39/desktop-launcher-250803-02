@@ -31,6 +31,7 @@ class GroupIcon(QWidget):
         self.is_dragging = False  # ドラッグ中かどうかを追跡
         self.settings_manager = settings_manager
         self.main_app = main_app  # メインアプリケーションへの参照
+        self.launcher_app = main_app  # launcher_app として別名でも参照可能
         self.last_click_time = 0  # ダブルクリック検出用
         self.custom_icon_path = None  # カスタムアイコンのパス
         self.list_window = None  # 対応するリストウィンドウへの参照
@@ -500,6 +501,14 @@ class GroupIcon(QWidget):
         mime_data = event.mimeData()
         print(f"[DEBUG] mimeData.hasUrls(): {mime_data.hasUrls()}")
         
+        # カスタム形式がある場合は、リストアイテムからのドラッグとして処理
+        if mime_data.hasFormat("application/x-launcher-item"):
+            print(f"[DEBUG] リストアイテムのドラッグを検出 - 重複チェックなしで受け入れ")
+            event.acceptProposedAction()
+            self.setStyleSheet("QWidget { border: 2px dashed #00ff00; }")
+            return
+        
+        # URLがある場合はファイル/フォルダのドロップとして処理
         if mime_data.hasUrls():
             urls = mime_data.urls()
             print(f"[DEBUG] URLs count: {len(urls)}")
@@ -510,25 +519,42 @@ class GroupIcon(QWidget):
             # ファイルやフォルダのドロップを受け入れ
             event.acceptProposedAction()
             self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
-            print(f"[DEBUG] drag accepted")
-        elif mime_data.hasFormat("application/x-launcher-item"):
-            print(f"[DEBUG] リストアイテムのドラッグを検出")
-            # リストアイテムのドロップを受け入れ
-            event.acceptProposedAction()
-            self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
-            print(f"[DEBUG] list item drag accepted")
+            print(f"[DEBUG] file/folder drag accepted")
         else:
             print(f"[DEBUG] mimeData has no supported formats")
             # その他のフォーマットも確認
             formats = mime_data.formats()
             print(f"[DEBUG] available formats: {formats}")
             event.ignore()
+    
+    def is_item_duplicate(self, item_info):
+        """アイテムが重複しているかチェック"""
+        # Chrome アプリかどうかを判定
+        incoming_is_chrome_app = ('chrome.exe' in item_info['path'].lower() or 'chrome_proxy.exe' in item_info['path'].lower())
+        
+        for item in self.items:
+            existing_is_chrome_app = ('chrome.exe' in item['path'].lower() or 'chrome_proxy.exe' in item['path'].lower())
+            
+            if incoming_is_chrome_app and existing_is_chrome_app:
+                # 両方がChrome アプリの場合は original_path で比較
+                if (item_info.get('original_path') and item.get('original_path') and
+                    item['original_path'] == item_info['original_path']):
+                    return True
+            elif not incoming_is_chrome_app and not existing_is_chrome_app:
+                # 通常のアプリ同士の場合は path で比較
+                if item['path'] == item_info['path']:
+                    return True
+        
+        return False
             
     def dragMoveEvent(self, event):
         """ドラッグムーブイベント"""
         print(f"[DEBUG] dragMoveEvent called")
         mime_data = event.mimeData()
-        if mime_data.hasUrls() or mime_data.hasFormat("application/x-launcher-item"):
+        if mime_data.hasFormat("application/x-launcher-item"):
+            # 重複チェックのため、リストアイテムは拒否
+            event.ignore()
+        elif mime_data.hasUrls():
             event.acceptProposedAction()
         else:
             event.ignore()
@@ -540,12 +566,29 @@ class GroupIcon(QWidget):
         
     def dropEvent(self, event):
         """ドロップイベント"""
-        print(f"[DEBUG] dropEvent called")
+        print(f"[DEBUG] ★★★ dropEvent called ★★★")
         self.setStyleSheet("")
         
-        if event.mimeData().hasUrls():
-            print(f"[DEBUG] mimeData has URLs: {len(event.mimeData().urls())} URLs")
-            for i, url in enumerate(event.mimeData().urls()):
+        mime_data = event.mimeData()
+        
+        # カスタム形式がある場合は、リストアイテムからのドロップとして処理
+        if mime_data.hasFormat("application/x-launcher-item"):
+            print(f"[DEBUG] カスタムMIMEタイプのドロップを処理 - 重複チェックなしで追加")
+            try:
+                import json
+                item_data = mime_data.data("application/x-launcher-item").data()
+                item_info = json.loads(item_data.decode('utf-8'))
+                
+                print(f"[DEBUG] リストアイテムを追加: {item_info['name']}")
+                self.add_item_with_info(item_info)
+                event.acceptProposedAction()
+                self.items_changed.emit()
+            except Exception as e:
+                print(f"[DEBUG] カスタムデータ処理エラー: {e}")
+                event.ignore()
+        elif mime_data.hasUrls():
+            print(f"[DEBUG] mimeData has URLs: {len(mime_data.urls())} URLs")
+            for i, url in enumerate(mime_data.urls()):
                 file_path = url.toLocalFile()
                 print(f"[DEBUG] URL {i}: {url.toString()}")
                 print(f"[DEBUG] localFile: {file_path}")
@@ -557,73 +600,10 @@ class GroupIcon(QWidget):
             event.acceptProposedAction()
             self.items_changed.emit()
         else:
-            # カスタム形式（リストアイテムからのドラッグ）をチェック
-            mime_data = event.mimeData()
-            if mime_data.hasFormat("application/x-launcher-item"):
-                print(f"[DEBUG] リストアイテムのドロップを検出")
-                try:
-                    import json
-                    item_data = mime_data.data("application/x-launcher-item").data().decode('utf-8')
-                    item_info = json.loads(item_data)
-                    print(f"[DEBUG] ドロップされたアイテム情報: {item_info}")
-                    
-                    # 重複チェック：Chrome アプリかどうかを判定
-                    incoming_is_chrome_app = ('chrome.exe' in item_info['path'].lower() or 'chrome_proxy.exe' in item_info['path'].lower())
-                    
-                    # 重複チェック
-                    is_duplicate = False
-                    for existing_item in self.items:
-                        existing_is_chrome_app = ('chrome.exe' in existing_item['path'].lower() or 'chrome_proxy.exe' in existing_item['path'].lower())
-                        
-                        if incoming_is_chrome_app and existing_is_chrome_app:
-                            # 両方がChrome アプリの場合は original_path で比較
-                            if (item_info.get('original_path') and existing_item.get('original_path') and
-                                existing_item['original_path'] == item_info['original_path']):
-                                is_duplicate = True
-                                break
-                        elif not incoming_is_chrome_app and not existing_is_chrome_app:
-                            # 両方が通常アプリの場合は path で比較
-                            if existing_item['path'] == item_info['path']:
-                                is_duplicate = True
-                                break
-                    
-                    if is_duplicate:
-                        print(f"[DEBUG] 重複アイテムのため、ドロップを拒否: {item_info.get('name')}")
-                        # 重複の場合でもドロップ先を記録（デスクトップ移動を防ぐため）
-                        if hasattr(QApplication.instance(), 'last_drop_target'):
-                            QApplication.instance().last_drop_target = self
-                        else:
-                            setattr(QApplication.instance(), 'last_drop_target', self)
-                        
-                        # 視覚的フィードバック：一時的に赤いボーダーを表示
-                        self.show_reject_feedback()
-                        event.ignore()
-                        return
-                    else:
-                        print(f"[DEBUG] 重複なし、アイテムを追加: {item_info.get('name')}")
-                        # ドロップ先を記録（後でcheck_if_moved_to_other_listで参照される）
-                        if hasattr(QApplication.instance(), 'last_drop_target'):
-                            QApplication.instance().last_drop_target = self
-                        else:
-                            setattr(QApplication.instance(), 'last_drop_target', self)
-                        
-                        self.add_item_with_info(item_info)
-                        event.acceptProposedAction()
-                        self.items_changed.emit()
-                        return
-                        
-                except Exception as e:
-                    print(f"[DEBUG] リストアイテムドロップ処理エラー: {e}")
-                    event.ignore()
-                    return
-            
-            print(f"[DEBUG] mimeData has no URLs or unsupported format")
-            # MimeDataの詳細を確認
+            print(f"[DEBUG] mimeData has no supported formats")
+            # その他のフォーマットも確認
             formats = mime_data.formats()
             print(f"[DEBUG] available formats: {formats}")
-            for format in formats:
-                data = mime_data.data(format)
-                print(f"[DEBUG] format {format}: {data.data()[:100]}...")
             event.ignore()
             
     def add_item(self, file_path):
@@ -657,20 +637,8 @@ class GroupIcon(QWidget):
             actual_path = resolved_path
             print(f"[DEBUG] 通常ファイル使用: {actual_path}")
         
-        # 重複チェック：Chrome アプリの場合は original_path でチェック、それ以外は path でチェック
-        is_chrome_app = ('chrome.exe' in actual_path.lower() or 'chrome_proxy.exe' in actual_path.lower())
-        
-        for item in self.items:
-            if is_chrome_app:
-                # Chrome アプリの場合は original_path で重複チェック
-                if item.get('original_path') == file_path:
-                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {file_path}")
-                    return
-            else:
-                # 通常のアプリの場合は path で重複チェック
-                if item['path'] == actual_path:
-                    print(f"[DEBUG] 重複により追加をスキップ: {actual_path}")
-                    return
+        # 重複チェックを削除 - 常に追加（シンプル化）
+        print(f"[DEBUG] アイテム追加（重複チェックなし）")
                 
         # 表示名を取得（ショートカットの場合は.lnkを除去）
         display_name = get_display_name(file_path)
@@ -695,26 +663,8 @@ class GroupIcon(QWidget):
         """完全なアイテム情報を使ってアイテムを追加（グループ間移動用）"""
         print(f"[DEBUG] add_item_with_info called with: {item_info}")
         
-        # 重複チェック：Chrome アプリかどうかを判定
-        incoming_is_chrome_app = ('chrome.exe' in item_info['path'].lower() or 'chrome_proxy.exe' in item_info['path'].lower())
-        
-        for item in self.items:
-            existing_is_chrome_app = ('chrome.exe' in item['path'].lower() or 'chrome_proxy.exe' in item['path'].lower())
-            
-            if incoming_is_chrome_app and existing_is_chrome_app:
-                # 両方がChrome アプリの場合は original_path で比較
-                if (item_info.get('original_path') and item.get('original_path') and
-                    item['original_path'] == item_info['original_path']):
-                    print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info.get('original_path')}")
-                    return
-            elif not incoming_is_chrome_app and not existing_is_chrome_app:
-                # 両方が通常アプリの場合は path で比較
-                if item['path'] == item_info['path']:
-                    print(f"[DEBUG] 通常アプリ重複により追加をスキップ: {item_info['path']}")
-                    return
-            # Chrome アプリと通常アプリの組み合わせの場合は重複とみなさない
-        
-        # アイテムを追加（情報をそのまま使用）
+        # 重複チェックを削除 - 常に追加
+        print(f"[DEBUG] アイテム追加（重複チェックなし）: {item_info}")
         self.items.append(item_info.copy())  # コピーして追加
         self.update_display()
         print(f"[DEBUG] add_item_with_info完了, アイテム数: {len(self.items)}")
@@ -753,12 +703,16 @@ class GroupIcon(QWidget):
         self.items_changed.emit()
         
     def remove_specific_item(self, target_item):
-        """特定のアイテムオブジェクトを削除（Chrome アプリ用）"""
+        """特定のアイテムオブジェクトを削除（1つだけ削除）"""
         print(f"[DEBUG] remove_specific_item called with: {target_item}")
         print(f"[DEBUG] 削除前のアイテム数: {len(self.items)}")
         
-        # アイテムオブジェクト全体で比較して削除
-        self.items = [item for item in self.items if item != target_item]
+        # 同じ内容のアイテムが複数ある場合でも1つだけ削除
+        for i, item in enumerate(self.items):
+            if item == target_item:
+                print(f"[DEBUG] アイテム削除: インデックス={i}, アイテム={item}")
+                self.items.pop(i)
+                break  # 最初に見つかった1つだけを削除
         
         print(f"[DEBUG] 削除後のアイテム数: {len(self.items)}")
         self.update_display()

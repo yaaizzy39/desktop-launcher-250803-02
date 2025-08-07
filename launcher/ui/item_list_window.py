@@ -241,12 +241,13 @@ class ItemWidget(QFrame):
         drag = QDrag(self)
         mime_data = QMimeData()
         
-        # カスタムデータのみを設定（ファイルURLは設定しない）
-        # これにより標準のファイルコピー動作を防ぐ
-        # アイテム全体の情報をJSON形式で送信（original_path情報を保持するため）
+        # カスタムデータを設定（グループ間移動用）
         import json
         item_data = json.dumps(self.item_info)
         mime_data.setData("application/x-launcher-item", item_data.encode('utf-8'))
+        
+        # ファイルURLは設定しない（アプリ本体が移動してしまう問題があるため）
+        # デスクトップドロップは内部的に検出してショートカットを作成する
         
         # プレーンテキストとしてもパスを設定（フォールバック用）
         mime_data.setText(self.item_info['path'])
@@ -259,14 +260,73 @@ class ItemWidget(QFrame):
         # マウス位置追跡タイマーを開始
         self.start_mouse_tracking()
         
-        # ドラッグ実行（複数のアクションを許可して禁止マークを防ぐ）
+        # フラグ処理を削除（シンプル化）
+        
+        # ドラッグ実行（CopyActionとMoveActionの両方を許可）
         drop_action = drag.exec(Qt.DropAction.CopyAction | Qt.DropAction.MoveAction)
         
         # マウス位置追跡を停止
         self.stop_mouse_tracking()
         
+        # ドロップアクションを保存（後で重複拒否の判定に使用）
+        self.last_drop_action = drop_action
+        
+        # 複雑なチェック処理を削除（シンプル化）
+        
         # ドラッグ終了後の処理
         self.handle_drag_finished(drop_action)
+    
+    def check_duplicate_rejection_immediately(self):
+        """ドラッグ終了直後に重複拒否状態を即座にチェック"""
+        print(f"[DEBUG] ★★★ check_duplicate_rejection_immediately: メソッド開始 ★★★")
+        try:
+            print(f"[DEBUG] check_duplicate_rejection_immediately: 開始")
+            
+            # IgnoreActionでない場合は成功したドロップなのでスキップ
+            if self.last_drop_action != Qt.DropAction.IgnoreAction:
+                print(f"[DEBUG] ドロップアクション={self.last_drop_action}, 成功したドロップなのでスキップ")
+                return
+            
+            # 親リストウィンドウとアプリを取得
+            parent_list = self.parent()
+            while parent_list and not isinstance(parent_list, ItemListWindow):
+                parent_list = parent_list.parent()
+            
+            if not (parent_list and parent_list.group_icon and hasattr(parent_list.group_icon, 'launcher_app')):
+                print(f"[DEBUG] アプリ参照取得失敗")
+                return
+            
+            app = parent_list.group_icon.launcher_app
+            
+            # ドロップ位置がグループアイコンの上かチェック
+            if hasattr(self, 'drop_position'):
+                drop_on_icon = self.is_drop_on_group_icon(self.drop_position)
+                print(f"[DEBUG] ドロップ位置: {self.drop_position}, グループアイコン上: {drop_on_icon}")
+                
+                if not drop_on_icon:
+                    # デスクトップドロップの場合は重複チェックしない
+                    app.last_drag_was_rejected_for_duplicate = False
+                    print(f"[DEBUG] デスクトップドロップのため拒否フラグを設定: False")
+                    return
+            
+            # グループアイコン上でのドロップの場合のみ重複チェック
+            duplicate_found = False
+            for group_icon in app.group_icons:
+                if group_icon.is_item_duplicate(self.item_info):
+                    duplicate_found = True
+                    print(f"[DEBUG] グループ '{group_icon.name}' で重複検出")
+                    break
+            
+            # フラグを設定
+            if duplicate_found:
+                app.last_drag_was_rejected_for_duplicate = True
+                print(f"[DEBUG] 重複検出により拒否フラグを設定: True")
+            else:
+                app.last_drag_was_rejected_for_duplicate = False
+                print(f"[DEBUG] 重複なし、拒否フラグを設定: False")
+                
+        except Exception as e:
+            print(f"即座重複チェックエラー: {e}")
         
     def start_reorder_drag(self):
         """並び替えドラッグ操作を開始"""
@@ -455,15 +515,13 @@ class ItemWidget(QFrame):
         """ドラッグ終了後の処理"""
         try:
             print(f"[DEBUG] handle_drag_finished: ドラッグ終了: アクション={drop_action}")
-            print(f"[DEBUG] handle_drag_finished: アクション値={int(drop_action)}")
-            print(f"[DEBUG] handle_drag_finished: IgnoreAction={int(Qt.DropAction.IgnoreAction)}")
+            print(f"[DEBUG] handle_drag_finished: アクション値={drop_action.value}")
+            print(f"[DEBUG] handle_drag_finished: IgnoreAction={Qt.DropAction.IgnoreAction.value}")
             print(f"[DEBUG] handle_drag_finished: is_reorder_drag={self.is_reorder_drag}")
             print(f"[DEBUG] handle_drag_finished: アイテム情報={self.item_info}")
             
-            # ドロップが拒否された場合（IgnoreAction）は何もしない
-            if drop_action == Qt.DropAction.IgnoreAction:
-                print(f"[DEBUG] handle_drag_finished: ドロップが拒否されたため、デスクトップ移動処理をスキップ")
-                return
+            # ドロップアクションによる判定は削除（デスクトップでもIgnoreActionになるため）
+            # 代わりに、後でlast_drop_targetによる判定を使用
             
             # 並び替えドラッグでない場合のみ処理
             if not self.is_reorder_drag:
@@ -495,6 +553,8 @@ class ItemWidget(QFrame):
                 
             # アイテムがまだリストに存在するかチェック（Chrome アプリ対応）
             item_still_exists = False
+            print(f"[DEBUG] check_and_create_shortcut: アイテム存在チェック開始")
+            print(f"[DEBUG] check_and_create_shortcut: parent_list.group_icon = {parent_list.group_icon}")
             if parent_list.group_icon:
                 is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
                                'chrome_proxy.exe' in self.item_info.get('path', '').lower())
@@ -514,12 +574,16 @@ class ItemWidget(QFrame):
                             print(f"[DEBUG] 通常アプリ存在確認: {self.item_info.get('name')}")
                             break
                         
+            print(f"[DEBUG] check_and_create_shortcut: item_still_exists = {item_still_exists}")
             # アイテムがリストから削除されていない（つまり外部ドロップ）場合のみ処理
             if item_still_exists:
+                print(f"[DEBUG] check_and_create_shortcut: アイテムが存在している")
                 # 他のリストにアイテムが移動されたかチェック
                 moved_to_other_list = self.check_if_moved_to_other_list()
+                print(f"[DEBUG] check_and_create_shortcut: moved_to_other_list = {moved_to_other_list}")
                 
                 if not moved_to_other_list:
+                    print(f"[DEBUG] check_and_create_shortcut: デスクトップにショートカット作成を開始")
                     # 真の外部ドロップと判断してショートカットを作成
                     desktop_path = self.get_desktop_path()
                     if desktop_path:
@@ -556,41 +620,62 @@ class ItemWidget(QFrame):
             print(f"ショートカット作成確認エラー: {e}")
             
     def check_if_moved_to_other_list(self):
-        """アイテムが他のリストに移動されたかチェック"""
+        """アイテムが他のリストに移動されたかチェック（シンプル版）"""
         try:
-            # ドロップ先が記録されているかチェック
-            app = QApplication.instance()
-            if hasattr(app, 'last_drop_target') and app.last_drop_target is not None:
-                print(f"[DEBUG] ドロップ先が記録されている: {app.last_drop_target.name}")
-                
-                # 現在の親グループを特定
-                current_parent = self.parent()
-                while current_parent and not isinstance(current_parent, ItemListWindow):
-                    current_parent = current_parent.parent()
-                
-                current_group = current_parent.group_icon if current_parent else None
-                
-                # ドロップ先が現在のグループと異なる場合は移動と判定
-                if current_group and app.last_drop_target != current_group:
-                    print(f"[DEBUG] 他のグループ({app.last_drop_target.name})への移動を検出")
-                    # ドロップ先記録をクリア
-                    app.last_drop_target = None
-                    return True
-                else:
-                    print(f"[DEBUG] 同一グループ、または無効なドロップ")
-                    # ドロップ先記録をクリア
-                    app.last_drop_target = None
-                    return False
-            else:
-                print(f"[DEBUG] ドロップ先が記録されていない、デスクトップへの移動と判定")
-                return False
+            # ドロップアクションがCopyActionまたはMoveActionの場合は成功とみなす
+            if hasattr(self, 'last_drop_action') and self.last_drop_action in [Qt.DropAction.CopyAction, Qt.DropAction.MoveAction]:
+                print(f"[DEBUG] check_if_moved_to_other_list: 成功したドロップ={self.last_drop_action}")
+                return True
+            
+            # それ以外（IgnoreAction等）はデスクトップドロップとみなす
+            print(f"[DEBUG] check_if_moved_to_other_list: デスクトップドロップと判定")
+            return False
         except Exception as e:
             print(f"他リスト移動チェックエラー: {e}")
-            # エラーの場合もドロップ先記録をクリア
-            try:
-                QApplication.instance().last_drop_target = None
-            except:
-                pass
+            return False
+    
+    def is_drop_on_group_icon(self, drop_pos):
+        """指定位置がグループアイコンの上かチェック"""
+        try:
+            # drop_posをQPointに変換
+            if isinstance(drop_pos, tuple):
+                drop_point = QPoint(drop_pos[0], drop_pos[1])
+            else:
+                drop_point = drop_pos
+            
+            print(f"[DEBUG] is_drop_on_group_icon: ドロップ位置={drop_point}")
+            
+            # 親リストウィンドウを取得
+            parent_list = self.parent()
+            while parent_list and not isinstance(parent_list, ItemListWindow):
+                parent_list = parent_list.parent()
+            
+            if not parent_list or not parent_list.group_icon:
+                return False
+            
+            # アプリケーションを取得してグループアイコンをチェック
+            app = parent_list.group_icon.launcher_app
+            if not app:
+                return False
+            
+            # 全てのグループアイコンの位置をチェック
+            for group_icon in app.group_icons:
+                icon_rect = group_icon.geometry()
+                icon_pos = group_icon.pos()
+                
+                # グローバル座標での矩形を作成
+                global_rect = icon_rect.translated(icon_pos)
+                
+                print(f"[DEBUG] グループアイコン '{group_icon.name}': {global_rect}")
+                
+                if global_rect.contains(drop_point):
+                    print(f"[DEBUG] ドロップ位置がグループアイコン '{group_icon.name}' 内")
+                    return True
+            
+            print(f"[DEBUG] どのグループアイコンにも該当しない")
+            return False
+        except Exception as e:
+            print(f"グループアイコン位置チェックエラー: {e}")
             return False
             
     def get_desktop_path(self):
@@ -1556,21 +1641,7 @@ class ItemListWindow(QWidget):
                 
                 print(f"[DEBUG] リスト間移動 - 受信したアイテム情報: {item_info}")
                 
-                # 既に存在するかチェック（Chromeアプリ対応）
-                is_chrome_app = ('chrome.exe' in item_path.lower() or 'chrome_proxy.exe' in item_path.lower())
-                
-                for item in self.group_icon.items:
-                    if is_chrome_app:
-                        # Chrome アプリの場合は original_path で重複チェック
-                        if (item.get('original_path') == item_info.get('original_path') and 
-                            item_info.get('original_path')):
-                            print(f"[DEBUG] Chrome アプリ重複により追加をスキップ: {item_info.get('original_path')}")
-                            return  # 重複なので追加しない
-                    else:
-                        # 通常のアプリの場合は path で重複チェック
-                        if item['path'] == item_path:
-                            print(f"[DEBUG] 通常アプリ重複により追加をスキップ: {item_path}")
-                            return  # 重複なので追加しない
+                # 重複チェックを削除（シンプル化） - 常に追加
                         
                 # 他のグループから削除（常に実行 - アクションに関係なく移動として処理）
                 print(f"[DEBUG] 他のグループからアイテムを削除中...")
