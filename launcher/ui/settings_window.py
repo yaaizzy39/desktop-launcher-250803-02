@@ -176,6 +176,11 @@ class AppearanceTab(QWidget):
         opacity_layout.addWidget(self.opacity_label)
         icon_layout.addRow("透明度:", opacity_layout)
         
+        # アイコンフォルダを開くボタン
+        self.open_icons_folder_btn = QPushButton("アイコンフォルダを開く")
+        self.open_icons_folder_btn.clicked.connect(self.open_icons_folder)
+        icon_layout.addRow("アイコン管理:", self.open_icons_folder_btn)
+        
         # アイコン色機能を削除（デフォルトアイコンがアプリアイコンになったため）
         
         icon_group.setLayout(icon_layout)
@@ -206,6 +211,39 @@ class AppearanceTab(QWidget):
     def update_opacity_label(self, value):
         """透明度ラベルを更新"""
         self.opacity_label.setText(f"{value}%")
+        
+    def open_icons_folder(self):
+        """アイコンフォルダをエクスプローラーで開く"""
+        try:
+            # icon_selector_dialog.pyからget_icons_directory関数をインポート
+            import sys
+            import os
+            
+            # 他のモジュールのパスを追加
+            current_dir = os.path.dirname(__file__)
+            parent_dir = os.path.dirname(current_dir)
+            sys.path.insert(0, parent_dir)
+            
+            from ui.icon_selector_dialog import ensure_user_icons_directory
+            
+            # アイコンフォルダのパスを取得（フォルダが存在しない場合は作成）
+            icons_dir = ensure_user_icons_directory()
+            
+            # Windowsエクスプローラーでフォルダを開く
+            if os.name == 'nt':  # Windows
+                os.startfile(icons_dir)
+            else:  # その他のOS（一応対応）
+                import subprocess
+                if sys.platform.startswith('darwin'):  # macOS
+                    subprocess.run(['open', icons_dir])
+                else:  # Linux
+                    subprocess.run(['xdg-open', icons_dir])
+                    
+        except Exception as e:
+            QMessageBox.critical(
+                self, "エラー", 
+                f"アイコンフォルダを開けませんでした:\n{str(e)}"
+            )
         
     # choose_color メソッドを削除（アイコン色機能削除のため）
             
