@@ -365,6 +365,11 @@ class GroupIcon(QWidget):
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
         
+        # プロファイル管理
+        profile_action = QAction("プロファイル管理", self)
+        profile_action.triggered.connect(self.show_profile_manager)
+        menu.addAction(profile_action)
+        
         menu.addSeparator()
         
         # 整列機能
@@ -847,3 +852,16 @@ class GroupIcon(QWidget):
             final_y = max(screen_y, min(list_y, screen_y + screen_height - list_height))
             
             self.list_window.move(final_x, final_y)
+            
+    def show_profile_manager(self):
+        """プロファイル管理ウィンドウを表示"""
+        try:
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if hasattr(app, 'show_profile_manager'):
+                app.show_profile_manager()
+            else:
+                QMessageBox.warning(self, "エラー", "プロファイル管理機能が見つかりません。")
+        except Exception as e:
+            print(f"プロファイル管理ウィンドウ表示エラー: {e}")
+            QMessageBox.critical(self, "エラー", f"プロファイル管理ウィンドウの表示中にエラーが発生しました:\n{str(e)}")
