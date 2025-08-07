@@ -181,7 +181,7 @@ class LauncherApp(QApplication):
         
         if not groups_data:
             # 初回起動時はデフォルトグループを作成（名前を指定してダイアログを回避）
-            self.create_new_group("Apps", QPoint(100, 100))
+            self.create_default_group()
         else:
             for group_data in groups_data:
                 self.create_group_from_data(group_data)
@@ -269,6 +269,45 @@ class LauncherApp(QApplication):
             print(f"グループ復元時の設定適用エラー: {e}")
         
         group_icon.show()
+        
+    def create_default_group(self):
+        """初回起動時のデフォルトグループを作成"""
+        # デフォルトグループのデータを作成
+        default_group_data = {
+            'name': 'Apps',
+            'x': 100,
+            'y': 100,
+            'custom_icon_path': self.get_app_icon_path(),
+            'items': []
+        }
+        
+        # グループを作成
+        group_icon = self.create_group_from_data(default_group_data)
+        print(f"デフォルトグループ作成: {default_group_data['custom_icon_path']}")
+        return group_icon
+        
+    def get_app_icon_path(self):
+        """アプリケーションアイコンのパスを取得"""
+        try:
+            # ビルド環境かどうかを判定
+            if getattr(sys, 'frozen', False):
+                # PyInstallerでビルドされた環境
+                base_path = os.path.dirname(sys.executable)
+                icon_path = os.path.join(base_path, "_internal", "app_icon.ico")
+            else:
+                # 開発環境
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                icon_path = os.path.join(os.path.dirname(script_dir), "app_icon.ico")
+                
+            if os.path.exists(icon_path):
+                return icon_path
+            else:
+                print(f"アプリケーションアイコンが見つかりません: {icon_path}")
+                return None
+                
+        except Exception as e:
+            print(f"アプリケーションアイコンパス取得エラー: {e}")
+            return None
         
     def show_item_list(self, group_icon):
         """アイテムリストウィンドウを表示"""
