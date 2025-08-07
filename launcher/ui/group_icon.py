@@ -123,9 +123,90 @@ class GroupIcon(QWidget):
             
         if show_names:
             self.text_label.setText(str(self.name))
+            self.adjust_text_size()  # テキストサイズを調整
             self.text_label.show()
         else:
             self.text_label.hide()
+            
+    def adjust_text_size(self):
+        """テキストサイズを枠に収まるように自動調整"""
+        if not self.text_label.isVisible():
+            return
+            
+        text = self.text_label.text()
+        if not text:
+            return
+            
+        # 利用可能な幅と高さを取得
+        available_width = self.text_label.width() - 8  # パディング分を差し引く
+        available_height = self.text_label.height() - 4  # パディング分を差し引く
+        
+        # フォントサイズの範囲を設定（最大14px、最小9px）
+        max_font_size = 14
+        min_font_size = 9
+        
+        from PyQt6.QtGui import QFontMetrics
+        
+        # 最適なフォントサイズを見つける
+        best_font_size = min_font_size
+        best_text = text
+        
+        for font_size in range(max_font_size, min_font_size - 1, -1):
+            font = QFont()
+            font.setPixelSize(font_size)
+            font.setBold(True)
+            font_metrics = QFontMetrics(font)
+            
+            # テキストのサイズを測定
+            text_width = font_metrics.horizontalAdvance(text)
+            text_height = font_metrics.height()
+            
+            # 枠に収まるかチェック
+            if text_width <= available_width and text_height <= available_height:
+                best_font_size = font_size
+                best_text = text
+                break
+            else:
+                # 最小サイズでも収まらない場合、テキストを切り詰める
+                if font_size == min_font_size:
+                    best_font_size = min_font_size
+                    best_text = self.truncate_text_to_fit(text, font, available_width)
+                    break
+        
+        # スタイルを更新
+        self.text_label.setStyleSheet(f"""
+            QLabel {{
+                color: white;
+                background-color: rgba(0, 0, 0, 150);
+                border-radius: 8px;
+                padding: 2px 4px;
+                font-size: {best_font_size}px;
+                font-weight: bold;
+            }}
+        """)
+        
+        # テキストを設定
+        if best_text != text:
+            self.text_label.setText(best_text)
+            
+    def truncate_text_to_fit(self, text, font, available_width):
+        """テキストを利用可能な幅に収まるように切り詰める"""
+        from PyQt6.QtGui import QFontMetrics
+        
+        font_metrics = QFontMetrics(font)
+        
+        # 全文が収まる場合はそのまま返す
+        if font_metrics.horizontalAdvance(text) <= available_width:
+            return text
+            
+        # 1文字ずつ削って収まる長さを見つける
+        for i in range(len(text), 0, -1):
+            truncated = text[:i]
+            if font_metrics.horizontalAdvance(truncated) <= available_width:
+                return truncated
+                
+        # 1文字も収まらない場合は最初の1文字を返す
+        return text[0] if text else ""
         
     def display_custom_icon(self):
         """カスタムアイコンを表示"""
@@ -757,6 +838,9 @@ class GroupIcon(QWidget):
             
             # グループ名の表示設定を適用
             self.update_group_name_visibility()
+            
+            # テキストサイズを再調整（レイアウト変更後）
+            QTimer.singleShot(10, self.adjust_text_size)
             
             self.show()  # フラグ変更後に再表示
             
