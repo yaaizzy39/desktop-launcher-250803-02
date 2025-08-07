@@ -323,7 +323,27 @@ class ProfileWindow(QDialog):
             success, message = self.profile_manager.create_empty_profile(name, description)
             
             if success:
-                QMessageBox.information(self, "成功", message)
+                # ユーザーに切り替えるかどうか確認
+                reply = QMessageBox.question(
+                    self,
+                    "プロファイル作成完了",
+                    f"空のプロファイル '{name}' を作成しました。\n"
+                    "すぐにこのプロファイルに切り替えますか？\n"
+                    "（現在のデスクトップアイコンがすべて消えます）",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                
+                if reply == QMessageBox.StandardButton.Yes:
+                    # 空のプロファイルに切り替え
+                    switch_success, switch_message = self.profile_manager.switch_to_profile(name)
+                    if switch_success:
+                        # プロファイル切り替えシグナルを発信
+                        self.profile_switched.emit(name)
+                        QMessageBox.information(self, "完了", f"空のプロファイル '{name}' に切り替えました。")
+                    else:
+                        QMessageBox.warning(self, "エラー", f"切り替えに失敗しました: {switch_message}")
+                
                 self.load_profile_list()
                 
                 # 新しく作成したプロファイルを選択
