@@ -213,6 +213,12 @@ class LauncherApp(QApplication):
         group_icon.position_changed.connect(self.save_groups)
         group_icon.items_changed.connect(self.save_groups)
         
+        # デフォルトアイコンをiconLaunchアプリアイコンに設定
+        app_icon_path = self.get_app_icon_path()
+        if app_icon_path:
+            group_icon.custom_icon_path = app_icon_path
+            print(f"[DEBUG] 新グループにデフォルトアイコン設定: {app_icon_path}")
+        
         self.group_icons.append(group_icon)
         
         # 設定を適用

@@ -6,12 +6,12 @@ import os
 import winreg
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                             QGroupBox, QCheckBox, QSpinBox, QSlider, QLabel,
-                            QPushButton, QColorDialog, QComboBox, QLineEdit,
+                            QPushButton, QComboBox, QLineEdit,
                             QFileDialog, QMessageBox, QFormLayout, QSpacerItem,
                             QSizePolicy, QFrame, QScrollArea,
                             QTextEdit, QDialogButtonBox, QKeySequenceEdit, QDialog)
 from PyQt6.QtCore import Qt, pyqtSignal, QSettings, QStandardPaths, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette, QKeySequence
+from PyQt6.QtGui import QFont, QPalette, QKeySequence
 from data.settings_manager import SettingsManager
 
 
@@ -144,7 +144,7 @@ class AppearanceTab(QWidget):
     def __init__(self, settings_manager):
         super().__init__()
         self.settings_manager = settings_manager
-        self.current_color = '#6496ff'  # デフォルト色を保存
+        # self.current_color を削除（アイコン色機能削除のため）
         self.setup_ui()
         self.load_settings()
         
@@ -176,18 +176,7 @@ class AppearanceTab(QWidget):
         opacity_layout.addWidget(self.opacity_label)
         icon_layout.addRow("透明度:", opacity_layout)
         
-        # アイコン色
-        self.color_button = QPushButton("色を選択")
-        self.color_button.clicked.connect(self.choose_color)
-        self.color_preview = QLabel()
-        self.color_preview.setFixedSize(30, 30)
-        self.color_preview.setStyleSheet("background-color: #6496ff; border: 1px solid #ccc;")
-        
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(self.color_button)
-        color_layout.addWidget(self.color_preview)
-        color_layout.addStretch()
-        icon_layout.addRow("アイコン色:", color_layout)
+        # アイコン色機能を削除（デフォルトアイコンがアプリアイコンになったため）
         
         icon_group.setLayout(icon_layout)
         layout.addWidget(icon_group)
@@ -218,14 +207,7 @@ class AppearanceTab(QWidget):
         """透明度ラベルを更新"""
         self.opacity_label.setText(f"{value}%")
         
-    def choose_color(self):
-        """色選択ダイアログ"""
-        current_color = QColor(self.current_color)
-        color = QColorDialog.getColor(current_color, self)
-        if color.isValid():
-            self.current_color = color.name()
-            self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
-            self.settings_changed.emit()
+    # choose_color メソッドを削除（アイコン色機能削除のため）
             
     def load_settings(self):
         """設定を読み込み"""
@@ -235,8 +217,7 @@ class AppearanceTab(QWidget):
         self.opacity_slider.setValue(settings.get('opacity', 80))
         self.update_opacity_label(settings.get('opacity', 80))
         
-        self.current_color = settings.get('icon_color', '#6496ff')
-        self.color_preview.setStyleSheet(f"background-color: {self.current_color}; border: 1px solid #ccc;")
+        # アイコン色設定を削除
         
         self.always_on_top.setChecked(settings.get('always_on_top', True))
         self.show_group_names.setChecked(settings.get('show_group_names', True))
@@ -247,7 +228,7 @@ class AppearanceTab(QWidget):
         return {
             'icon_size': self.icon_size_spin.value(),
             'opacity': self.opacity_slider.value(),
-            'icon_color': self.current_color,
+            # 'icon_color': アイコン色機能を削除
             'always_on_top': self.always_on_top.isChecked(),
             'show_group_names': self.show_group_names.isChecked(),
             'show_file_paths': self.show_file_paths.isChecked()
