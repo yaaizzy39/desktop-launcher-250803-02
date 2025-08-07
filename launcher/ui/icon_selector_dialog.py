@@ -13,19 +13,9 @@ from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor, QRegion
 
 
 def write_debug_log(message):
-    """デバッグ情報をファイルに出力"""
-    try:
-        if getattr(sys, 'frozen', False):
-            log_file = os.path.join(os.path.dirname(sys.executable), "debug.log")
-        else:
-            log_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug.log")
-        
-        with open(log_file, 'a', encoding='utf-8') as f:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"[{timestamp}] {message}\n")
-    except:
-        pass
+    """デバッグ情報をファイルに出力（現在無効化）"""
+    # デバッグログ出力を一時停止
+    pass
 
 def get_icons_directory():
     """アイコンディレクトリのパスを取得（開発環境とビルド環境に対応）"""
