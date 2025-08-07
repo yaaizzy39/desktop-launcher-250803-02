@@ -77,6 +77,9 @@ class LauncherApp(QApplication):
         self.settings_manager = SettingsManager(self.data_manager)
         self.profile_manager = ProfileManager(self.data_manager)
         
+        # settings_managerにprofile_managerへの参照を設定
+        self.settings_manager.profile_manager = self.profile_manager
+        
         # グループアイコン管理
         self.group_icons = []
         self.item_list_windows = {}

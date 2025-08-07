@@ -259,12 +259,16 @@ class SettingsManager:
             
             export_path = os.path.join(export_dir, export_filename)
             
+            # プロファイルデータも含める
+            profile_data = self.export_all_profiles()
+            
             export_data = {
                 'version': '1.0',
                 'exported': datetime.now().isoformat(),
                 'app_name': self.app_name,
                 'settings': self.settings,
-                'groups': self.data_manager.load_groups()  # グループデータも含める
+                'groups': self.data_manager.load_groups(),  # グループデータも含める
+                'profiles': profile_data  # プロファイルデータを追加
             }
             
             with open(export_path, 'w', encoding='utf-8') as f:
@@ -305,6 +309,10 @@ class SettingsManager:
             # グループデータもインポート（存在する場合）
             if 'groups' in data and isinstance(data['groups'], list):
                 self.data_manager.save_groups(data['groups'])
+                
+            # プロファイルデータもインポート（存在する場合）
+            if 'profiles' in data and isinstance(data['profiles'], dict):
+                self.import_all_profiles(data['profiles'])
                 
             return True
             
@@ -353,6 +361,118 @@ class SettingsManager:
         """デフォルトのエクスポートファイル名を取得"""
         timestamp = self.get_timestamp()
         return f"launcher_settings_{timestamp}.json"
+        
+    def export_all_profiles(self):
+        """全プロファイルデータをエクスポート用に取得"""
+        try:
+            # プロファイル管理システムが利用可能かチェック
+            if not hasattr(self, 'profile_manager') or self.profile_manager is None:
+                return None
+                
+            profiles_data = {}
+            profile_list = self.profile_manager.get_profile_list()
+            
+            for profile_info in profile_list:
+                profile_name = profile_info['name']
+                
+                # プロファイルの完全なデータを取得
+                profile_dir = os.path.join(self.profile_manager.profiles_dir, profile_name)
+                profile_file = os.path.join(profile_dir, "profile.json")
+                groups_file = os.path.join(profile_dir, "groups.json")
+                
+                profile_export_data = {
+                    'info': profile_info,
+                    'profile_data': None,
+                    'groups_data': None
+                }
+                
+                # プロファイル情報を読み込み
+                if os.path.exists(profile_file):
+                    try:
+                        with open(profile_file, 'r', encoding='utf-8') as f:
+                            profile_export_data['profile_data'] = json.load(f)
+                    except Exception as e:
+                        print(f"プロファイル '{profile_name}' の読み込みエラー: {e}")
+                
+                # グループデータを読み込み
+                if os.path.exists(groups_file):
+                    try:
+                        with open(groups_file, 'r', encoding='utf-8') as f:
+                            profile_export_data['groups_data'] = json.load(f)
+                    except Exception as e:
+                        print(f"プロファイル '{profile_name}' のグループデータ読み込みエラー: {e}")
+                
+                profiles_data[profile_name] = profile_export_data
+                
+            # 現在のプロファイル情報も含める
+            if hasattr(self.profile_manager, 'current_profile_name'):
+                profiles_data['current_profile'] = self.profile_manager.current_profile_name
+                
+            return profiles_data
+            
+        except Exception as e:
+            print(f"プロファイルデータエクスポートエラー: {e}")
+            return None
+            
+    def import_all_profiles(self, profiles_data):
+        """全プロファイルデータをインポート"""
+        try:
+            # プロファイル管理システムが利用可能かチェック
+            if not hasattr(self, 'profile_manager') or self.profile_manager is None:
+                print("プロファイル管理システムが利用できません")
+                return False
+                
+            # 現在のプロファイル情報を保存
+            current_profile_backup = getattr(self.profile_manager, 'current_profile_name', None)
+            
+            # 各プロファイルを復元
+            for profile_name, profile_export_data in profiles_data.items():
+                if profile_name == 'current_profile':
+                    continue  # 現在のプロファイル情報は後で処理
+                    
+                if not isinstance(profile_export_data, dict):
+                    continue
+                    
+                # プロファイルディレクトリを作成
+                profile_dir = os.path.join(self.profile_manager.profiles_dir, profile_name)
+                os.makedirs(profile_dir, exist_ok=True)
+                
+                # プロファイル情報を復元
+                if 'profile_data' in profile_export_data and profile_export_data['profile_data']:
+                    profile_file = os.path.join(profile_dir, "profile.json")
+                    with open(profile_file, 'w', encoding='utf-8') as f:
+                        json.dump(profile_export_data['profile_data'], f, indent=2, ensure_ascii=False)
+                
+                # グループデータを復元
+                if 'groups_data' in profile_export_data and profile_export_data['groups_data']:
+                    groups_file = os.path.join(profile_dir, "groups.json")
+                    with open(groups_file, 'w', encoding='utf-8') as f:
+                        json.dump(profile_export_data['groups_data'], f, indent=2, ensure_ascii=False)
+                
+                print(f"プロファイル '{profile_name}' をインポートしました")
+            
+            # 現在のプロファイル情報を復元
+            if 'current_profile' in profiles_data and profiles_data['current_profile']:
+                # エクスポート時の現在プロファイルが存在するかチェック
+                exported_current = profiles_data['current_profile']
+                if exported_current in profiles_data and exported_current != 'current_profile':
+                    self.profile_manager.current_profile_name = exported_current
+                    # current_profile.json を更新
+                    try:
+                        current_profile_data = {
+                            'current_profile': exported_current,
+                            'updated': datetime.now().isoformat()
+                        }
+                        with open(self.profile_manager.current_profile_file, 'w', encoding='utf-8') as f:
+                            json.dump(current_profile_data, f, indent=2, ensure_ascii=False)
+                    except Exception as e:
+                        print(f"現在のプロファイル情報更新エラー: {e}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"プロファイルデータインポートエラー: {e}")
+            return False
 
     def get_settings_info(self):
         """設定情報を取得"""
