@@ -39,22 +39,29 @@ PROFILE_HOTKEY_START_ID = 100
 class GlobalHotkeyFilter(QAbstractNativeEventFilter):
     """グローバルホットキーのイベントフィルター"""
     
-    def __init__(self, toggle_callback, profile_callback):
+    def __init__(self, toggle_callback, profile_callback, app_instance):
         super().__init__()
         self.toggle_callback = toggle_callback
         self.profile_callback = profile_callback
+        self.app_instance = app_instance
     
     def nativeEventFilter(self, eventType, message):
         if eventType == "windows_generic_MSG":
             msg = ctypes.wintypes.MSG.from_address(message.__int__())
             if msg.message == WM_HOTKEY:
-                if msg.wParam == 1:  # ホットキーID 1 (表示切り替え)
+                hotkey_id = msg.wParam
+                print(f"[DEBUG] ホットキーイベント受信: ID={hotkey_id}")
+                
+                if hotkey_id == 1:  # ホットキーID 1 (表示切り替え)
+                    print(f"[DEBUG] 表示切り替えホットキー実行")
                     self.toggle_callback()
                     return True, 0
-                elif PROFILE_HOTKEY_START_ID <= msg.wParam <= PROFILE_HOTKEY_START_ID + 11:  # F1-F12
-                    profile_index = msg.wParam - PROFILE_HOTKEY_START_ID
-                    self.profile_callback(profile_index)
+                elif hotkey_id in self.app_instance.profile_hotkeys:  # 登録されたプロファイルホットキー
+                    print(f"[DEBUG] プロファイル切り替えホットキー実行: ID={hotkey_id}")
+                    self.profile_callback(hotkey_id)
                     return True, 0
+                else:
+                    print(f"[DEBUG] 未知のホットキーID: {hotkey_id}")
         return False, 0
 
 
@@ -716,6 +723,19 @@ class LauncherApp(QApplication):
                     elif part.isdigit() and len(part) == 1:
                         # 0-9
                         vk_code = ord(part)
+                    elif part.startswith('f') and len(part) > 1:
+                        # F1-F12 ファンクションキー
+                        try:
+                            f_num = int(part[1:])
+                            if 1 <= f_num <= 12:
+                                # F1=0x70, F2=0x71, ..., F12=0x7B
+                                vk_code = 0x70 + f_num - 1
+                            else:
+                                print(f"未対応のファンクションキー: {part}")
+                                return None, None
+                        except ValueError:
+                            print(f"無効なファンクションキー: {part}")
+                            return None, None
                     else:
                         print(f"未対応のキー: {part}")
                         return None, None
@@ -740,7 +760,7 @@ class LauncherApp(QApplication):
             
             if success:
                 # イベントフィルターを設定
-                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey)
+                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey, self)
                 self.installNativeEventFilter(self.hotkey_filter)
                 print(f"RegisterHotKey成功: modifiers={modifiers}, vk_code={vk_code}")
                 return True
@@ -810,6 +830,7 @@ class LauncherApp(QApplication):
             if self.profile_window is None:
                 self.profile_window = ProfileWindow(self.profile_manager, self.settings_manager)
                 self.profile_window.profile_switched.connect(self.on_profile_switched)
+                self.profile_window.profiles_changed.connect(self.setup_profile_hotkeys)
                 
             self.profile_window.show()
             self.profile_window.raise_()
@@ -846,41 +867,46 @@ class LauncherApp(QApplication):
             import traceback
             traceback.print_exc()
             
-    def switch_profile_by_hotkey(self, profile_index):
+    def switch_profile_by_hotkey(self, hotkey_id):
         """ホットキーによるプロファイル切り替え"""
         try:
-            # プロファイル一覧を取得
-            profiles = self.profile_manager.get_profile_list()
+            if hotkey_id not in self.profile_hotkeys:
+                print(f"ホットキーID {hotkey_id} は登録されていません")
+                return
             
-            if 0 <= profile_index < len(profiles):
-                profile_name = profiles[profile_index]['name']
-                current_profile = self.profile_manager.get_current_profile_name()
-                
-                # 現在のプロファイルと同じ場合はスキップ
-                if profile_name == current_profile:
-                    print(f"既に '{profile_name}' を使用中です")
-                    return
-                    
-                print(f"ホットキーでプロファイル切り替え: F{profile_index + 1} -> {profile_name}")
-                
-                # プロファイルを切り替え
-                success, message = self.profile_manager.switch_to_profile(profile_name)
-                
-                if success:
-                    self.on_profile_switched(profile_name)
-                    # システムトレイに通知（オプション）
-                    if hasattr(self, 'tray_icon'):
-                        self.tray_icon.showMessage(
-                            "プロファイル切り替え",
-                            f"'{profile_name}' に切り替えました",
-                            QSystemTrayIcon.MessageIcon.Information,
-                            1500
-                        )
-                else:
-                    print(f"プロファイル切り替え失敗: {message}")
-                    
+            hotkey_info = self.profile_hotkeys[hotkey_id]
+            if isinstance(hotkey_info, dict):
+                profile_name = hotkey_info['name']
+                hotkey_string = hotkey_info.get('hotkey_string', 'Unknown')
             else:
-                print(f"プロファイルインデックス {profile_index} は範囲外です (利用可能: 0-{len(profiles)-1})")
+                # 旧形式の場合（後方互換性）
+                profile_name = hotkey_info
+                hotkey_string = "Unknown"
+            
+            current_profile = self.profile_manager.get_current_profile_name()
+            
+            # 現在のプロファイルと同じ場合はスキップ
+            if profile_name == current_profile:
+                print(f"既に '{profile_name}' を使用中です")
+                return
+                
+            print(f"ホットキーでプロファイル切り替え: {hotkey_string} -> {profile_name}")
+            
+            # プロファイルを切り替え
+            success, message = self.profile_manager.switch_to_profile(profile_name)
+            
+            if success:
+                self.on_profile_switched(profile_name)
+                # システムトレイに通知（使用されたホットキーも表示）
+                if hasattr(self, 'tray_icon'):
+                    self.tray_icon.showMessage(
+                        "プロファイル切り替え",
+                        f"[{hotkey_string}] '{profile_name}' に切り替えました",
+                        QSystemTrayIcon.MessageIcon.Information,
+                        1500
+                    )
+            else:
+                print(f"プロファイル切り替え失敗: {message}")
                 
         except Exception as e:
             print(f"ホットキープロファイル切り替えエラー: {e}")
@@ -890,32 +916,87 @@ class LauncherApp(QApplication):
     def setup_profile_hotkeys(self):
         """プロファイル切り替え用ホットキーを設定"""
         try:
+            print("=== プロファイルホットキー設定開始 ===")
+            
             # 既存のプロファイルホットキーを削除
             self.unregister_profile_hotkeys()
             
             # プロファイル一覧を取得
             profiles = self.profile_manager.get_profile_list()
+            print(f"利用可能プロファイル数: {len(profiles)}")
+            
+            if len(profiles) == 0:
+                print("プロファイルが存在しないため、ホットキー設定をスキップ")
+                return
             
             user32 = ctypes.windll.user32
+            registered_count = 0
+            failed_profiles = []
             
-            # F1-F12に対応する仮想キーコード
-            f_keys = [0x70 + i for i in range(12)]  # VK_F1 = 0x70, VK_F12 = 0x7B
-            
-            # 最大12個のプロファイルをF1-F12に割り当て
-            for i in range(min(len(profiles), 12)):
-                hotkey_id = PROFILE_HOTKEY_START_ID + i
-                modifiers = MOD_CONTROL | MOD_SHIFT
-                vk_code = f_keys[i]
+            # 各プロファイルに保存されたホットキー情報を使用
+            for profile in profiles:
+                profile_info = self.profile_manager.get_profile_info(profile['name'])
+                if not profile_info or not profile_info.get('hotkey'):
+                    print(f"プロファイル '{profile['name']}' にはホットキーが設定されていません")
+                    continue
+                    
+                hotkey_info = profile_info['hotkey']
+                if not hotkey_info or 'hotkey_string' not in hotkey_info:
+                    print(f"プロファイル '{profile['name']}' のホットキー情報が無効です")
+                    continue
+                
+                # ホットキー情報を解析
+                hotkey_string = hotkey_info['hotkey_string']
+                modifiers, vk_code = self.parse_hotkey_string(hotkey_string)
+                
+                if modifiers is None or vk_code is None:
+                    print(f"プロファイル '{profile['name']}' のホットキー解析に失敗: {hotkey_string}")
+                    failed_profiles.append(profile['name'])
+                    continue
+                
+                # 動的なホットキーIDを生成（ホットキー文字列のハッシュベース）
+                hotkey_id = PROFILE_HOTKEY_START_ID + hash(hotkey_string) % 1000
+                
+                print(f"ホットキー登録試行: {hotkey_string} -> {profile['name']} (ID={hotkey_id})")
                 
                 success = user32.RegisterHotKey(0, hotkey_id, modifiers, vk_code)
                 if success:
-                    self.profile_hotkeys[hotkey_id] = profiles[i]['name']
-                    print(f"プロファイルホットキー登録成功: Ctrl+Shift+F{i+1} -> {profiles[i]['name']}")
+                    self.profile_hotkeys[hotkey_id] = {
+                        'name': profile['name'],
+                        'hotkey_string': hotkey_string,
+                        'modifier_name': hotkey_info.get('modifier', ''),
+                        'key': hotkey_info.get('fkey', '')
+                    }
+                    registered_count += 1
+                    print(f"[OK] プロファイルホットキー登録成功: {hotkey_string} -> {profile['name']}")
                 else:
                     error = ctypes.windll.kernel32.GetLastError()
-                    print(f"プロファイルホットキー登録失敗 F{i+1}: エラーコード {error}")
+                    if error == 1409:  # ERROR_HOTKEY_ALREADY_REGISTERED
+                        print(f"[NG] {hotkey_string} は既に使用中")
+                    else:
+                        print(f"[NG] {hotkey_string} 登録失敗: エラーコード {error}")
+                    failed_profiles.append(profile['name'])
                     
-            print(f"プロファイルホットキー設定完了: {len(self.profile_hotkeys)}個")
+            print(f"プロファイルホットキー設定完了: {registered_count}/{len(profiles)}個登録成功")
+            
+            # 登録成功したホットキーマッピングを表示
+            print("\n=== 登録済みホットキーマッピング ===")
+            for hotkey_id in sorted(self.profile_hotkeys.keys()):
+                hotkey_info = self.profile_hotkeys[hotkey_id]
+                if isinstance(hotkey_info, dict):
+                    hotkey_string = hotkey_info.get('hotkey_string', 'Unknown')
+                    profile_name = hotkey_info.get('name', 'Unknown')
+                    print(f"  {hotkey_string} -> '{profile_name}'")
+                else:
+                    print(f"  (旧形式) -> '{hotkey_info}'")
+            print("=====================================")
+            
+            if failed_profiles:
+                print(f"[WARNING] 以下のプロファイルはホットキー登録に失敗しました: {', '.join(failed_profiles)}")
+                print("  -> 他のアプリケーションと競合している可能性があります")
+                print("  -> プロファイル管理ウィンドウで別のホットキーに変更してください")
+            
+            print("=== プロファイルホットキー設定終了 ===\n")
             
         except Exception as e:
             print(f"プロファイルホットキー設定エラー: {e}")

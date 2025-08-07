@@ -30,7 +30,7 @@ class ProfileManager:
         """プロファイルディレクトリを作成"""
         os.makedirs(self.profiles_dir, exist_ok=True)
         
-    def save_profile(self, profile_name, description=""):
+    def save_profile(self, profile_name, description="", hotkey_info=None):
         """現在の状態をプロファイルとして保存"""
         try:
             if not profile_name or not profile_name.strip():
@@ -57,7 +57,8 @@ class ProfileManager:
                 'created': datetime.now().isoformat(),
                 'updated': datetime.now().isoformat(),
                 'version': '1.0',
-                'groups': current_groups
+                'groups': current_groups,
+                'hotkey': hotkey_info  # ホットキー情報を追加
             }
             
             # プロファイルファイルに保存
@@ -73,7 +74,7 @@ class ProfileManager:
             print(error_msg)
             return False, error_msg
             
-    def create_empty_profile(self, profile_name, description=""):
+    def create_empty_profile(self, profile_name, description="", hotkey_info=None):
         """空のプロファイルを作成"""
         try:
             if not profile_name or not profile_name.strip():
@@ -97,7 +98,8 @@ class ProfileManager:
                 'created': datetime.now().isoformat(),
                 'updated': datetime.now().isoformat(),
                 'version': '1.0',
-                'groups': []  # 空のグループリスト
+                'groups': [],  # 空のグループリスト
+                'hotkey': hotkey_info  # ホットキー情報を追加
             }
             
             # プロファイルファイルに保存
@@ -389,5 +391,34 @@ class ProfileManager:
             
         except Exception as e:
             error_msg = f"プロファイルインポートエラー: {e}"
+            print(error_msg)
+            return False, error_msg
+            
+    def update_profile_hotkey(self, profile_name, hotkey_info):
+        """プロファイルのホットキー設定を更新"""
+        try:
+            if not self.profile_exists(profile_name):
+                return False, f"プロファイル '{profile_name}' が見つかりません"
+                
+            profile_dir = os.path.join(self.profiles_dir, profile_name)
+            profile_file = os.path.join(profile_dir, "profile.json")
+            
+            # 既存のプロファイルデータを読み込み
+            with open(profile_file, 'r', encoding='utf-8') as f:
+                profile_data = json.load(f)
+            
+            # ホットキー情報を更新
+            profile_data['hotkey'] = hotkey_info
+            profile_data['updated'] = datetime.now().isoformat()
+            
+            # プロファイルファイルに保存
+            with open(profile_file, 'w', encoding='utf-8') as f:
+                json.dump(profile_data, f, indent=2, ensure_ascii=False)
+                
+            print(f"プロファイル '{profile_name}' のホットキーを更新しました")
+            return True, f"プロファイル '{profile_name}' のホットキーを更新しました"
+            
+        except Exception as e:
+            error_msg = f"プロファイルホットキー更新エラー: {e}"
             print(error_msg)
             return False, error_msg

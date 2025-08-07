@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                             QSplitter, QWidget, QFileDialog, QMenu, QApplication)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QFont, QAction
+from .hotkey_selector_dialog import HotkeySelector
 import os
 from datetime import datetime
 
@@ -18,6 +19,8 @@ class ProfileWindow(QDialog):
     
     # プロファイル切り替えのシグナル
     profile_switched = pyqtSignal(str)  # profile_name
+    # プロファイル管理のシグナル（作成・削除・名前変更時）
+    profiles_changed = pyqtSignal()  # プロファイルリストが変更された
     
     def __init__(self, profile_manager, settings_manager):
         super().__init__()
@@ -49,6 +52,11 @@ class ProfileWindow(QDialog):
         list_label = QLabel("プロファイル一覧")
         list_label.setFont(QFont("", 10, QFont.Weight.Bold))
         left_layout.addWidget(list_label)
+        
+        # ホットキー説明ラベル
+        hotkey_label = QLabel("ホットキー: Ctrl+Shift+[F1-F12]で切り替え")
+        hotkey_label.setStyleSheet("color: #666; font-size: 9px;")
+        left_layout.addWidget(hotkey_label)
         
         # プロファイルリスト
         self.profile_list = QListWidget()
@@ -128,6 +136,15 @@ class ProfileWindow(QDialog):
         groups_layout.addStretch()
         details_layout.addLayout(groups_layout)
         
+        # ホットキー情報
+        hotkey_layout = QHBoxLayout()
+        hotkey_layout.addWidget(QLabel("ホットキー:"))
+        self.hotkey_label = QLabel("-")
+        self.hotkey_label.setStyleSheet("color: #0066cc; font-weight: bold;")
+        hotkey_layout.addWidget(self.hotkey_label)
+        hotkey_layout.addStretch()
+        details_layout.addLayout(hotkey_layout)
+        
         right_layout.addWidget(details_group)
         
         # 追加操作ボタン
@@ -137,6 +154,11 @@ class ProfileWindow(QDialog):
         self.rename_button.clicked.connect(self.rename_profile)
         self.rename_button.setEnabled(False)
         extra_button_layout.addWidget(self.rename_button)
+        
+        self.hotkey_button = QPushButton("ホットキー設定")
+        self.hotkey_button.clicked.connect(self.set_profile_hotkey)
+        self.hotkey_button.setEnabled(False)
+        extra_button_layout.addWidget(self.hotkey_button)
         
         self.save_current_button = QPushButton("現在の状態を保存")
         self.save_current_button.clicked.connect(self.save_current_state)
@@ -199,11 +221,21 @@ class ProfileWindow(QDialog):
             self.profile_list.clear()
             profiles = self.profile_manager.get_profile_list()
             
-            for profile in profiles:
+            for index, profile in enumerate(profiles):
                 item = QListWidgetItem()
                 
-                # プロファイル名の表示
+                # プロファイル名の表示（ホットキー情報を含む）
                 name = profile['name']
+                
+                # ホットキー情報を追加（プロファイルファイルから直接取得）
+                try:
+                    profile_info = self.profile_manager.get_profile_info(profile['name'])
+                    if profile_info and profile_info.get('hotkey') and 'hotkey_string' in profile_info['hotkey']:
+                        hotkey = profile_info['hotkey']['hotkey_string']
+                        name = f"[{hotkey}] {name}"
+                except Exception as e:
+                    print(f"ホットキー情報取得エラー ({profile['name']}): {e}")
+                
                 if profile['is_current']:
                     name += " (現在使用中)"
                     
@@ -242,6 +274,7 @@ class ProfileWindow(QDialog):
             self.switch_button.setEnabled(not is_current)
             self.delete_button.setEnabled(not is_current)
             self.rename_button.setEnabled(True)
+            self.hotkey_button.setEnabled(True)
             self.export_button.setEnabled(True)
             
         else:
@@ -252,6 +285,7 @@ class ProfileWindow(QDialog):
             self.switch_button.setEnabled(False)
             self.delete_button.setEnabled(False)
             self.rename_button.setEnabled(False)
+            self.hotkey_button.setEnabled(False)
             self.export_button.setEnabled(False)
             
     def show_profile_details(self, profile_name):
@@ -281,6 +315,14 @@ class ProfileWindow(QDialog):
                 groups_count = profile_info.get('groups_count', 0)
                 self.groups_label.setText(f"{groups_count}個")
                 
+                # ホットキー情報を表示（プロファイルファイルから直接取得）
+                hotkey_text = "なし"
+                hotkey_info_stored = profile_info.get('hotkey')
+                if hotkey_info_stored and 'hotkey_string' in hotkey_info_stored:
+                    hotkey_text = hotkey_info_stored['hotkey_string']
+                
+                self.hotkey_label.setText(hotkey_text)
+                
         except Exception as e:
             print(f"プロファイル詳細表示エラー: {e}")
             self.clear_profile_details()
@@ -292,6 +334,7 @@ class ProfileWindow(QDialog):
         self.created_label.setText('-')
         self.updated_label.setText('-')
         self.groups_label.setText('-')
+        self.hotkey_label.setText('-')
         
     def create_new_profile(self):
         """新しい空のプロファイルを作成"""
@@ -319,8 +362,30 @@ class ProfileWindow(QDialog):
             if not ok:
                 description = ""
             
+            # 使用中のホットキーを取得
+            used_hotkeys = self.get_used_hotkeys()
+            
+            # ホットキー選択ダイアログを表示
+            hotkey_dialog = HotkeySelector(self, used_hotkeys=used_hotkeys)
+            if hotkey_dialog.exec() == QDialog.DialogCode.Accepted:
+                hotkey_info = hotkey_dialog.get_selected_hotkey()
+            else:
+                # ホットキー選択をスキップして作成を続行するかユーザーに確認
+                reply = QMessageBox.question(
+                    self,
+                    "ホットキー設定をスキップ",
+                    "ホットキーを設定せずにプロファイルを作成しますか？\n"
+                    "（後から「ホットキー設定」ボタンで設定できます）",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    hotkey_info = None  # ホットキーなしで作成
+                else:
+                    return  # 作成を中止
+            
             # 空のプロファイルを作成（現在の状態ではなく空の状態）
-            success, message = self.profile_manager.create_empty_profile(name, description)
+            success, message = self.profile_manager.create_empty_profile(name, description, hotkey_info)
             
             if success:
                 # ユーザーに切り替えるかどうか確認
@@ -345,6 +410,7 @@ class ProfileWindow(QDialog):
                         QMessageBox.warning(self, "エラー", f"切り替えに失敗しました: {switch_message}")
                 
                 self.load_profile_list()
+                self.profiles_changed.emit()  # プロファイルリスト変更を通知
                 
                 # 新しく作成したプロファイルを選択
                 for i in range(self.profile_list.count()):
@@ -409,6 +475,7 @@ class ProfileWindow(QDialog):
                 if success:
                     QMessageBox.information(self, "成功", message)
                     self.load_profile_list()
+                    self.profiles_changed.emit()  # プロファイルリスト変更を通知
                 else:
                     QMessageBox.warning(self, "エラー", message)
                     
@@ -443,6 +510,7 @@ class ProfileWindow(QDialog):
                 QMessageBox.information(self, "成功", message)
                 old_selection = self.selected_profile
                 self.load_profile_list()
+                self.profiles_changed.emit()  # プロファイルリスト変更を通知
                 
                 # 名前変更後のプロファイルを選択
                 for i in range(self.profile_list.count()):
@@ -456,6 +524,48 @@ class ProfileWindow(QDialog):
         except Exception as e:
             print(f"プロファイル名変更エラー: {e}")
             QMessageBox.critical(self, "エラー", f"プロファイル名の変更中にエラーが発生しました:\n{str(e)}")
+            
+    def set_profile_hotkey(self):
+        """プロファイルのホットキーを設定"""
+        if not self.selected_profile:
+            return
+            
+        try:
+            # 現在のホットキー情報を取得
+            profile_info = self.profile_manager.get_profile_info(self.selected_profile)
+            current_hotkey = None
+            if profile_info and profile_info.get('hotkey') and 'hotkey_string' in profile_info['hotkey']:
+                current_hotkey = profile_info['hotkey']['hotkey_string']
+            
+            # 使用中のホットキーを取得（現在のプロファイルは除外）
+            used_hotkeys = self.get_used_hotkeys()
+            if current_hotkey and current_hotkey in used_hotkeys:
+                del used_hotkeys[current_hotkey]  # 現在のプロファイルのホットキーは除外
+            
+            # ホットキー選択ダイアログを表示
+            hotkey_dialog = HotkeySelector(self, used_hotkeys=used_hotkeys, current_hotkey=current_hotkey)
+            if hotkey_dialog.exec() == QDialog.DialogCode.Accepted:
+                hotkey_info = hotkey_dialog.get_selected_hotkey()
+                
+                # ホットキー設定を更新
+                success, message = self.profile_manager.update_profile_hotkey(self.selected_profile, hotkey_info)
+                
+                if success:
+                    # 成功時はプロファイル詳細を更新してホットキーを再設定
+                    self.show_profile_details(self.selected_profile)
+                    self.load_profile_list()
+                    self.profiles_changed.emit()  # プロファイルリスト変更を通知
+                    
+                    if hotkey_info:
+                        QMessageBox.information(self, "成功", f"ホットキー '{hotkey_info['hotkey_string']}' を設定しました")
+                    else:
+                        QMessageBox.information(self, "成功", "ホットキーを解除しました")
+                else:
+                    QMessageBox.warning(self, "エラー", message)
+                    
+        except Exception as e:
+            print(f"ホットキー設定エラー: {e}")
+            QMessageBox.critical(self, "エラー", f"ホットキーの設定中にエラーが発生しました:\n{str(e)}")
             
     def save_current_state(self):
         """現在の状態を新しいプロファイルとして保存"""
@@ -483,12 +593,35 @@ class ProfileWindow(QDialog):
             if not ok:
                 description = ""
             
+            # 使用中のホットキーを取得
+            used_hotkeys = self.get_used_hotkeys()
+            
+            # ホットキー選択ダイアログを表示
+            hotkey_dialog = HotkeySelector(self, used_hotkeys=used_hotkeys)
+            if hotkey_dialog.exec() == QDialog.DialogCode.Accepted:
+                hotkey_info = hotkey_dialog.get_selected_hotkey()
+            else:
+                # ホットキー選択をスキップして保存を続行するかユーザーに確認
+                reply = QMessageBox.question(
+                    self,
+                    "ホットキー設定をスキップ",
+                    "ホットキーを設定せずにプロファイルを保存しますか？\n"
+                    "（後から「ホットキー設定」ボタンで設定できます）",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    hotkey_info = None  # ホットキーなしで保存
+                else:
+                    return  # 保存を中止
+            
             # 現在の状態をそのまま保存
-            success, message = self.profile_manager.save_profile(name, description)
+            success, message = self.profile_manager.save_profile(name, description, hotkey_info)
             
             if success:
                 QMessageBox.information(self, "成功", f"現在の状態を '{name}' として保存しました")
                 self.load_profile_list()
+                self.profiles_changed.emit()  # プロファイルリスト変更を通知
                 
                 # 新しく保存したプロファイルを選択
                 for i in range(self.profile_list.count()):
@@ -521,6 +654,7 @@ class ProfileWindow(QDialog):
             if success:
                 QMessageBox.information(self, "成功", message)
                 self.load_profile_list()
+                self.profiles_changed.emit()  # プロファイルリスト変更を通知
             else:
                 QMessageBox.warning(self, "エラー", message)
                 
@@ -580,6 +714,11 @@ class ProfileWindow(QDialog):
         rename_action.triggered.connect(self.rename_profile)
         menu.addAction(rename_action)
         
+        # ホットキー設定アクション
+        hotkey_action = QAction("ホットキー設定", self)
+        hotkey_action.triggered.connect(self.set_profile_hotkey)
+        menu.addAction(hotkey_action)
+        
         # エクスポートアクション
         export_action = QAction("エクスポート", self)
         export_action.triggered.connect(self.export_profile)
@@ -594,3 +733,18 @@ class ProfileWindow(QDialog):
         menu.addAction(delete_action)
         
         menu.exec(self.profile_list.mapToGlobal(position))
+        
+    def get_used_hotkeys(self):
+        """現在使用中のホットキー一覧を取得"""
+        used_hotkeys = {}
+        try:
+            profiles = self.profile_manager.get_profile_list()
+            for profile in profiles:
+                profile_info = self.profile_manager.get_profile_info(profile['name'])
+                if profile_info and profile_info.get('hotkey'):
+                    hotkey_info = profile_info['hotkey']
+                    if hotkey_info and 'hotkey_string' in hotkey_info:
+                        used_hotkeys[hotkey_info['hotkey_string']] = profile['name']
+        except Exception as e:
+            print(f"使用中ホットキー取得エラー: {e}")
+        return used_hotkeys
