@@ -51,7 +51,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     icon='app_icon.ico',
-    version=f'version_info.py',
+    version='version_info.py',
 )
 
 coll = COLLECT(
