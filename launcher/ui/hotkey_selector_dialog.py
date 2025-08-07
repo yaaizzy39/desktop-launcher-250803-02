@@ -85,7 +85,10 @@ class HotkeySelector(QDialog):
             self.enable_hotkey.setChecked(True)
             self.set_current_hotkey(self.current_hotkey)
         else:
-            self.enable_hotkey.setChecked(False)
+            self.enable_hotkey.setChecked(True)  # デフォルトで有効に
+            
+        # 初期状態に応じてUI制御
+        self.on_enable_changed(self.enable_hotkey.checkState())
             
     def create_hotkey_widget(self):
         """ホットキー選択ウィジェットを作成"""
@@ -137,7 +140,12 @@ class HotkeySelector(QDialog):
     def on_enable_changed(self, state):
         """ホットキー有効/無効切り替え"""
         enabled = state == Qt.CheckState.Checked
-        self.hotkey_widget.setEnabled(enabled)
+        if hasattr(self, 'modifier_combo'):
+            self.modifier_combo.setEnabled(enabled)
+        if hasattr(self, 'fkey_combo'):
+            self.fkey_combo.setEnabled(enabled)
+        if hasattr(self, 'preview_label'):
+            self.preview_label.setEnabled(enabled)
         
     def update_preview(self):
         """プレビューを更新"""
