@@ -6,7 +6,7 @@ import os
 import time
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QApplication, 
                             QMenu, QInputDialog, QMessageBox, QDialog)
-from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QMimeData, QUrl, QTimer
 from PyQt6.QtGui import (QPainter, QBrush, QColor, QPen, QFont, 
                         QPixmap, QIcon, QAction, QDrag, QRegion)
 from PyQt6.QtSvg import QSvgRenderer
@@ -511,8 +511,14 @@ class GroupIcon(QWidget):
             event.acceptProposedAction()
             self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
             print(f"[DEBUG] drag accepted")
+        elif mime_data.hasFormat("application/x-launcher-item"):
+            print(f"[DEBUG] リストアイテムのドラッグを検出")
+            # リストアイテムのドロップを受け入れ
+            event.acceptProposedAction()
+            self.setStyleSheet("QWidget { border: 2px dashed #ffff00; }")
+            print(f"[DEBUG] list item drag accepted")
         else:
-            print(f"[DEBUG] mimeData has no URLs")
+            print(f"[DEBUG] mimeData has no supported formats")
             # その他のフォーマットも確認
             formats = mime_data.formats()
             print(f"[DEBUG] available formats: {formats}")
@@ -521,7 +527,8 @@ class GroupIcon(QWidget):
     def dragMoveEvent(self, event):
         """ドラッグムーブイベント"""
         print(f"[DEBUG] dragMoveEvent called")
-        if event.mimeData().hasUrls():
+        mime_data = event.mimeData()
+        if mime_data.hasUrls() or mime_data.hasFormat("application/x-launcher-item"):
             event.acceptProposedAction()
         else:
             event.ignore()
@@ -550,9 +557,68 @@ class GroupIcon(QWidget):
             event.acceptProposedAction()
             self.items_changed.emit()
         else:
-            print(f"[DEBUG] mimeData has no URLs")
-            # MimeDataの詳細を確認
+            # カスタム形式（リストアイテムからのドラッグ）をチェック
             mime_data = event.mimeData()
+            if mime_data.hasFormat("application/x-launcher-item"):
+                print(f"[DEBUG] リストアイテムのドロップを検出")
+                try:
+                    import json
+                    item_data = mime_data.data("application/x-launcher-item").data().decode('utf-8')
+                    item_info = json.loads(item_data)
+                    print(f"[DEBUG] ドロップされたアイテム情報: {item_info}")
+                    
+                    # 重複チェック：Chrome アプリかどうかを判定
+                    incoming_is_chrome_app = ('chrome.exe' in item_info['path'].lower() or 'chrome_proxy.exe' in item_info['path'].lower())
+                    
+                    # 重複チェック
+                    is_duplicate = False
+                    for existing_item in self.items:
+                        existing_is_chrome_app = ('chrome.exe' in existing_item['path'].lower() or 'chrome_proxy.exe' in existing_item['path'].lower())
+                        
+                        if incoming_is_chrome_app and existing_is_chrome_app:
+                            # 両方がChrome アプリの場合は original_path で比較
+                            if (item_info.get('original_path') and existing_item.get('original_path') and
+                                existing_item['original_path'] == item_info['original_path']):
+                                is_duplicate = True
+                                break
+                        elif not incoming_is_chrome_app and not existing_is_chrome_app:
+                            # 両方が通常アプリの場合は path で比較
+                            if existing_item['path'] == item_info['path']:
+                                is_duplicate = True
+                                break
+                    
+                    if is_duplicate:
+                        print(f"[DEBUG] 重複アイテムのため、ドロップを拒否: {item_info.get('name')}")
+                        # 重複の場合でもドロップ先を記録（デスクトップ移動を防ぐため）
+                        if hasattr(QApplication.instance(), 'last_drop_target'):
+                            QApplication.instance().last_drop_target = self
+                        else:
+                            setattr(QApplication.instance(), 'last_drop_target', self)
+                        
+                        # 視覚的フィードバック：一時的に赤いボーダーを表示
+                        self.show_reject_feedback()
+                        event.ignore()
+                        return
+                    else:
+                        print(f"[DEBUG] 重複なし、アイテムを追加: {item_info.get('name')}")
+                        # ドロップ先を記録（後でcheck_if_moved_to_other_listで参照される）
+                        if hasattr(QApplication.instance(), 'last_drop_target'):
+                            QApplication.instance().last_drop_target = self
+                        else:
+                            setattr(QApplication.instance(), 'last_drop_target', self)
+                        
+                        self.add_item_with_info(item_info)
+                        event.acceptProposedAction()
+                        self.items_changed.emit()
+                        return
+                        
+                except Exception as e:
+                    print(f"[DEBUG] リストアイテムドロップ処理エラー: {e}")
+                    event.ignore()
+                    return
+            
+            print(f"[DEBUG] mimeData has no URLs or unsupported format")
+            # MimeDataの詳細を確認
             formats = mime_data.formats()
             print(f"[DEBUG] available formats: {formats}")
             for format in formats:
@@ -743,6 +809,28 @@ class GroupIcon(QWidget):
         if self.settings_manager:
             return self.settings_manager.get_appearance_settings()
         return {}
+    
+    def show_reject_feedback(self):
+        """ドロップ拒否時の視覚的フィードバックを表示"""
+        try:
+            # 現在のスタイルを保存
+            original_style = self.styleSheet()
+            
+            # 赤いボーダーのスタイルを適用
+            reject_style = """
+                QWidget {
+                    border: 3px solid #ff4444;
+                    border-radius: 40px;
+                    background-color: rgba(255, 68, 68, 50);
+                }
+            """
+            self.setStyleSheet(reject_style)
+            
+            # 500ms後に元のスタイルに戻す
+            QTimer.singleShot(500, lambda: self.setStyleSheet(original_style))
+            
+        except Exception as e:
+            print(f"ドロップ拒否フィードバック表示エラー: {e}")
     
     def update_list_position(self):
         """リストウィンドウの位置を更新"""

@@ -454,12 +454,24 @@ class ItemWidget(QFrame):
     def handle_drag_finished(self, drop_action):
         """ドラッグ終了後の処理"""
         try:
-            print(f"ドラッグ終了: アクション={drop_action}")
+            print(f"[DEBUG] handle_drag_finished: ドラッグ終了: アクション={drop_action}")
+            print(f"[DEBUG] handle_drag_finished: アクション値={int(drop_action)}")
+            print(f"[DEBUG] handle_drag_finished: IgnoreAction={int(Qt.DropAction.IgnoreAction)}")
+            print(f"[DEBUG] handle_drag_finished: is_reorder_drag={self.is_reorder_drag}")
+            print(f"[DEBUG] handle_drag_finished: アイテム情報={self.item_info}")
+            
+            # ドロップが拒否された場合（IgnoreAction）は何もしない
+            if drop_action == Qt.DropAction.IgnoreAction:
+                print(f"[DEBUG] handle_drag_finished: ドロップが拒否されたため、デスクトップ移動処理をスキップ")
+                return
             
             # 並び替えドラッグでない場合のみ処理
             if not self.is_reorder_drag:
+                print(f"[DEBUG] handle_drag_finished: 外部ドロップ確認のため200ms待機")
                 # 外部ドロップかどうかを確認するために少し待機
                 QTimer.singleShot(200, self.check_and_create_shortcut)
+            else:
+                print(f"[DEBUG] handle_drag_finished: 並び替えドラッグのため処理をスキップ")
                     
         except Exception as e:
             print(f"ドラッグ終了処理エラー: {e}")
@@ -467,13 +479,19 @@ class ItemWidget(QFrame):
     def check_and_create_shortcut(self):
         """ショートカット作成の最終確認"""
         try:
+            print(f"[DEBUG] check_and_create_shortcut: 開始")
+            print(f"[DEBUG] check_and_create_shortcut: アイテム情報={self.item_info}")
+            
             # 親リストウィンドウを取得
             parent_list = self.parent()
             while parent_list and not isinstance(parent_list, ItemListWindow):
                 parent_list = parent_list.parent()
                 
             if not parent_list:
+                print(f"[DEBUG] check_and_create_shortcut: 親リストウィンドウが見つからない")
                 return
+            
+            print(f"[DEBUG] check_and_create_shortcut: 親リストウィンドウ見つかった: {parent_list.group_icon.name if parent_list.group_icon else 'None'}")
                 
             # アイテムがまだリストに存在するかチェック（Chrome アプリ対応）
             item_still_exists = False
@@ -540,34 +558,39 @@ class ItemWidget(QFrame):
     def check_if_moved_to_other_list(self):
         """アイテムが他のリストに移動されたかチェック"""
         try:
-            # QApplicationインスタンスから全てのグループアイコンを取得
+            # ドロップ先が記録されているかチェック
             app = QApplication.instance()
-            if hasattr(app, 'group_icons'):
+            if hasattr(app, 'last_drop_target') and app.last_drop_target is not None:
+                print(f"[DEBUG] ドロップ先が記録されている: {app.last_drop_target.name}")
+                
+                # 現在の親グループを特定
                 current_parent = self.parent()
                 while current_parent and not isinstance(current_parent, ItemListWindow):
                     current_parent = current_parent.parent()
-                    
-                is_chrome_app = ('chrome.exe' in self.item_info.get('path', '').lower() or 
-                               'chrome_proxy.exe' in self.item_info.get('path', '').lower())
                 
-                for group_icon in app.group_icons:
-                    # 現在の親リスト以外をチェック
-                    if current_parent and group_icon != current_parent.group_icon:
-                        for item in group_icon.items:
-                            if is_chrome_app:
-                                # Chrome アプリの場合は original_path と name で比較
-                                if (item.get('original_path') == self.item_info.get('original_path') and
-                                    item.get('name') == self.item_info.get('name')):
-                                    print(f"[DEBUG] 他リストでChrome アプリ発見: {self.item_info.get('name')}")
-                                    return True
-                            else:
-                                # 通常アプリの場合は path で比較
-                                if item['path'] == self.item_info['path']:
-                                    print(f"[DEBUG] 他リストで通常アプリ発見: {self.item_info.get('name')}")
-                                    return True
-            return False
+                current_group = current_parent.group_icon if current_parent else None
+                
+                # ドロップ先が現在のグループと異なる場合は移動と判定
+                if current_group and app.last_drop_target != current_group:
+                    print(f"[DEBUG] 他のグループ({app.last_drop_target.name})への移動を検出")
+                    # ドロップ先記録をクリア
+                    app.last_drop_target = None
+                    return True
+                else:
+                    print(f"[DEBUG] 同一グループ、または無効なドロップ")
+                    # ドロップ先記録をクリア
+                    app.last_drop_target = None
+                    return False
+            else:
+                print(f"[DEBUG] ドロップ先が記録されていない、デスクトップへの移動と判定")
+                return False
         except Exception as e:
             print(f"他リスト移動チェックエラー: {e}")
+            # エラーの場合もドロップ先記録をクリア
+            try:
+                QApplication.instance().last_drop_target = None
+            except:
+                pass
             return False
             
     def get_desktop_path(self):
