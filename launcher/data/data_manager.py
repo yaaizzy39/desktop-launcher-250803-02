@@ -13,13 +13,17 @@ class DataManager:
     """データ管理クラス"""
     
     def __init__(self):
-        self.app_name = "DesktopLauncher"
+        self.app_name = "iconLaunch"
+        self.old_app_name = "DesktopLauncher"  # マイグレーション用
         self.config_dir = self.get_config_directory()
         self.config_file = os.path.join(self.config_dir, "groups.json")
         self.backup_dir = os.path.join(self.config_dir, "backups")
         
         # 設定ディレクトリを作成
         self.ensure_config_directory()
+        
+        # 旧バージョンからのマイグレーション
+        self.migrate_from_old_version()
         
     def get_config_directory(self):
         """設定ディレクトリのパスを取得"""
@@ -228,6 +232,87 @@ class DataManager:
             pass
             
         return info
+        
+    def migrate_from_old_version(self):
+        """旧バージョン（DesktopLauncher）からのデータマイグレーション"""
+        try:
+            # 新しい設定フォルダが既に存在し、データがある場合はマイグレーション不要
+            if os.path.exists(self.config_file):
+                print("新しい設定ファイルが存在するため、マイグレーションをスキップ")
+                return
+                
+            # 旧設定フォルダのパスを取得
+            old_config_dir = self.get_old_config_directory()
+            if not old_config_dir or not os.path.exists(old_config_dir):
+                print("旧設定フォルダが見つかりません。マイグレーションをスキップ")
+                return
+                
+            print(f"旧設定フォルダが見つかりました: {old_config_dir}")
+            print(f"新設定フォルダへマイグレーション開始: {self.config_dir}")
+            
+            # 旧フォルダの内容を新フォルダにコピー
+            import shutil
+            
+            # メインの設定ファイル
+            old_config_file = os.path.join(old_config_dir, "groups.json")
+            if os.path.exists(old_config_file):
+                shutil.copy2(old_config_file, self.config_file)
+                print("groups.json をマイグレーションしました")
+                
+            # バックアップフォルダ
+            old_backup_dir = os.path.join(old_config_dir, "backups")
+            if os.path.exists(old_backup_dir):
+                if os.path.exists(self.backup_dir):
+                    shutil.rmtree(self.backup_dir)
+                shutil.copytree(old_backup_dir, self.backup_dir)
+                print("backups フォルダをマイグレーションしました")
+                
+            # settings.json（存在する場合）
+            old_settings_file = os.path.join(old_config_dir, "settings.json")
+            new_settings_file = os.path.join(self.config_dir, "settings.json")
+            if os.path.exists(old_settings_file):
+                shutil.copy2(old_settings_file, new_settings_file)
+                print("settings.json をマイグレーションしました")
+                
+            # settings_backups フォルダ
+            old_settings_backups = os.path.join(old_config_dir, "settings_backups")
+            new_settings_backups = os.path.join(self.config_dir, "settings_backups")
+            if os.path.exists(old_settings_backups):
+                if os.path.exists(new_settings_backups):
+                    shutil.rmtree(new_settings_backups)
+                shutil.copytree(old_settings_backups, new_settings_backups)
+                print("settings_backups フォルダをマイグレーションしました")
+                
+            # exports フォルダ
+            old_exports = os.path.join(old_config_dir, "exports")
+            new_exports = os.path.join(self.config_dir, "exports")
+            if os.path.exists(old_exports):
+                if os.path.exists(new_exports):
+                    shutil.rmtree(new_exports)
+                shutil.copytree(old_exports, new_exports)
+                print("exports フォルダをマイグレーションしました")
+                
+            print("マイグレーションが完了しました")
+            
+        except Exception as e:
+            print(f"マイグレーションエラー: {e}")
+            
+    def get_old_config_directory(self):
+        """旧設定ディレクトリのパスを取得"""
+        try:
+            # Windows の場合は %APPDATA% を使用
+            if os.name == 'nt':
+                appdata = os.environ.get('APPDATA')
+                if appdata:
+                    return os.path.join(appdata, self.old_app_name)
+            
+            # フォールバック: ユーザーホームディレクトリ
+            home = Path.home()
+            return os.path.join(home, f".{self.old_app_name.lower()}")
+            
+        except Exception as e:
+            print(f"旧設定ディレクトリパス取得エラー: {e}")
+            return None
         
     def reset_settings(self):
         """設定をリセット"""

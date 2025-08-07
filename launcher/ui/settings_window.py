@@ -526,7 +526,7 @@ class SettingsWindow(QWidget):
         
     def setup_window(self):
         """ウィンドウ設定"""
-        self.setWindowTitle("ランチャー設定")
+        self.setWindowTitle("iconLaunch 設定")
         self.setFixedSize(600, 500)
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowCloseButtonHint)
         

@@ -15,7 +15,8 @@ class SettingsManager:
     
     def __init__(self, data_manager):
         self.data_manager = data_manager
-        self.app_name = "DesktopLauncher"
+        self.app_name = "iconLaunch"
+        self.old_app_name = "DesktopLauncher"  # マイグレーション用
         self.config_dir = data_manager.config_dir
         self.settings_file = os.path.join(self.config_dir, "settings.json")
         
@@ -44,6 +45,9 @@ class SettingsManager:
         
         # 設定を読み込み
         self.settings = self.load_settings()
+        
+        # レジストリキーのマイグレーション
+        self.migrate_registry_key()
         
     def load_settings(self):
         """設定ファイルを読み込み"""
@@ -372,3 +376,57 @@ class SettingsManager:
             info['settings_backup_count'] = 0
             
         return info
+        
+    def migrate_registry_key(self):
+        """旧レジストリキーから新レジストリキーへのマイグレーション"""
+        try:
+            # 新しいレジストリキーが既に存在する場合はマイグレーション不要
+            if self.is_startup_enabled():
+                print("新しいレジストリキーが存在するため、マイグレーションをスキップ")
+                return
+                
+            # 旧レジストリキーをチェック
+            if self.is_old_startup_enabled():
+                print("旧レジストリキーが見つかりました。マイグレーション開始")
+                
+                # 新しいキーで自動起動を有効化
+                if self.set_startup_with_windows(True):
+                    print("新しいレジストリキーでWindows起動時自動実行を有効化しました")
+                    
+                    # 旧キーを削除
+                    if self.remove_old_startup_key():
+                        print("旧レジストリキーを削除しました")
+                    else:
+                        print("旧レジストリキーの削除に失敗しました（手動削除が必要）")
+                else:
+                    print("新しいレジストリキーの設定に失敗しました")
+                    
+        except Exception as e:
+            print(f"レジストリキーマイグレーションエラー: {e}")
+            
+    def is_old_startup_enabled(self):
+        """旧レジストリキーで起動時自動実行が有効かチェック"""
+        try:
+            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ) as key:
+                try:
+                    winreg.QueryValueEx(key, self.old_app_name)
+                    return True
+                except FileNotFoundError:
+                    return False
+        except Exception:
+            return False
+            
+    def remove_old_startup_key(self):
+        """旧レジストリキーを削除"""
+        try:
+            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
+                try:
+                    winreg.DeleteValue(key, self.old_app_name)
+                    return True
+                except FileNotFoundError:
+                    return True  # 既に削除されている場合も成功とみなす
+        except Exception as e:
+            print(f"旧レジストリキー削除エラー: {e}")
+            return False

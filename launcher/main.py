@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Windows Desktop Launcher
+iconLaunch
 常駐型ランチャーアプリケーション
 """
 
@@ -487,7 +487,7 @@ class LauncherApp(QApplication):
     def show_about(self):
         """バージョン情報を表示"""
         about_text = """
-        <h3>Desktop Launcher</h3>
+        <h3>iconLaunch</h3>
         <p><b>バージョン:</b> 1.0.0</p>
         <p><b>作成者:</b> Claude Code</p>
         <p><b>説明:</b> Windows用デスクトップランチャーアプリケーション</p>
@@ -504,7 +504,7 @@ class LauncherApp(QApplication):
         </ul>
         """
         
-        QMessageBox.about(None, "Desktop Launcher について", about_text)
+        QMessageBox.about(None, "iconLaunch について", about_text)
         
     def apply_initial_settings(self):
         """初期設定を適用"""
@@ -785,7 +785,7 @@ def main():
     
     # システムトレイが利用可能かチェック
     if not QSystemTrayIcon.isSystemTrayAvailable():
-        QMessageBox.critical(None, "Desktop Launcher",
+        QMessageBox.critical(None, "iconLaunch",
                            "システムトレイが利用できません。")
         sys.exit(1)
     
