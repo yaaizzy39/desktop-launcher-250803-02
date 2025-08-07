@@ -874,7 +874,7 @@ class LauncherApp(QApplication):
                             "プロファイル切り替え",
                             f"'{profile_name}' に切り替えました",
                             QSystemTrayIcon.MessageIcon.Information,
-                            2000
+                            1500
                         )
                 else:
                     print(f"プロファイル切り替え失敗: {message}")

@@ -340,7 +340,7 @@ class ProfileWindow(QDialog):
                     if switch_success:
                         # プロファイル切り替えシグナルを発信
                         self.profile_switched.emit(name)
-                        QMessageBox.information(self, "完了", f"空のプロファイル '{name}' に切り替えました。")
+                        # 切り替え成功は視覚的な変化で分かるので、メッセージは不要
                     else:
                         QMessageBox.warning(self, "エラー", f"切り替えに失敗しました: {switch_message}")
                 
@@ -378,7 +378,6 @@ class ProfileWindow(QDialog):
                 success, message = self.profile_manager.switch_to_profile(self.selected_profile)
                 
                 if success:
-                    QMessageBox.information(self, "成功", message)
                     # プロファイル切り替えシグナルを発信
                     self.profile_switched.emit(self.selected_profile)
                     self.load_profile_list()
