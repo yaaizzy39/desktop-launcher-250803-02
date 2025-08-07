@@ -538,6 +538,12 @@ class SettingsWindow(QWidget):
         
         # ボタン
         button_layout = QHBoxLayout()
+        
+        # プロファイル管理ボタンを左側に配置
+        self.profile_btn = QPushButton("プロファイル管理")
+        self.profile_btn.clicked.connect(self.show_profile_manager)
+        button_layout.addWidget(self.profile_btn)
+        
         button_layout.addStretch()
         
         self.apply_btn = QPushButton("適用")
@@ -657,3 +663,16 @@ class SettingsWindow(QWidget):
         except Exception as e:
             print(f"再起動要求エラー: {e}")
             QMessageBox.critical(self, "エラー", f"再起動要求中にエラーが発生しました:\n{str(e)}")
+            
+    def show_profile_manager(self):
+        """プロファイル管理ウィンドウを表示"""
+        try:
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if hasattr(app, 'show_profile_manager'):
+                app.show_profile_manager()
+            else:
+                QMessageBox.warning(self, "エラー", "プロファイル管理機能が見つかりません。")
+        except Exception as e:
+            print(f"プロファイル管理ウィンドウ表示エラー: {e}")
+            QMessageBox.critical(self, "エラー", f"プロファイル管理ウィンドウの表示中にエラーが発生しました:\n{str(e)}")

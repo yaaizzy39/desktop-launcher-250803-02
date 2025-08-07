@@ -21,8 +21,10 @@ from PyQt6.QtWidgets import QWidget
 from ui.group_icon import GroupIcon
 from ui.item_list_window import ItemListWindow
 from ui.settings_window import SettingsWindow
+from ui.profile_window import ProfileWindow
 from data.data_manager import DataManager
 from data.settings_manager import SettingsManager
+from data.profile_manager import ProfileManager
 
 # Windows API定数
 WM_HOTKEY = 0x0312
@@ -31,19 +33,27 @@ MOD_CONTROL = 0x0002
 MOD_SHIFT = 0x0004
 MOD_WIN = 0x0008
 
+# プロファイル切り替え用のホットキーID（F1-F12用）
+PROFILE_HOTKEY_START_ID = 100
+
 class GlobalHotkeyFilter(QAbstractNativeEventFilter):
     """グローバルホットキーのイベントフィルター"""
     
-    def __init__(self, callback):
+    def __init__(self, toggle_callback, profile_callback):
         super().__init__()
-        self.callback = callback
+        self.toggle_callback = toggle_callback
+        self.profile_callback = profile_callback
     
     def nativeEventFilter(self, eventType, message):
         if eventType == "windows_generic_MSG":
             msg = ctypes.wintypes.MSG.from_address(message.__int__())
             if msg.message == WM_HOTKEY:
-                if msg.wParam == 1:  # ホットキーID 1
-                    self.callback()
+                if msg.wParam == 1:  # ホットキーID 1 (表示切り替え)
+                    self.toggle_callback()
+                    return True, 0
+                elif PROFILE_HOTKEY_START_ID <= msg.wParam <= PROFILE_HOTKEY_START_ID + 11:  # F1-F12
+                    profile_index = msg.wParam - PROFILE_HOTKEY_START_ID
+                    self.profile_callback(profile_index)
                     return True, 0
         return False, 0
 
@@ -58,15 +68,18 @@ class LauncherApp(QApplication):
         # データマネージャー初期化
         self.data_manager = DataManager()
         self.settings_manager = SettingsManager(self.data_manager)
+        self.profile_manager = ProfileManager(self.data_manager)
         
         # グループアイコン管理
         self.group_icons = []
         self.item_list_windows = {}
         self.settings_window = None
+        self.profile_window = None
         self.icons_visible = True  # アイコンの表示状態
         self.hotkey = None  # ホットキー
         self.hotkey_id = 1  # グローバルホットキーID
         self.hotkey_filter = None  # ホットキーフィルター
+        self.profile_hotkeys = {}  # プロファイル切り替え用ホットキー
         
         # システムトレイ設定
         self.setup_system_tray()
@@ -82,6 +95,9 @@ class LauncherApp(QApplication):
         
         # ホットキーを設定
         self.setup_hotkey()
+        
+        # プロファイルホットキーを設定
+        self.setup_profile_hotkeys()
         
     def load_app_icon(self):
         """アプリケーションアイコンを読み込み"""
@@ -146,6 +162,11 @@ class LauncherApp(QApplication):
         new_group_action = QAction("新しいグループを作成", self)
         new_group_action.triggered.connect(lambda: self.create_new_group())
         tray_menu.addAction(new_group_action)
+        
+        # プロファイル管理アクション
+        profile_action = QAction("プロファイル管理", self)
+        profile_action.triggered.connect(self.show_profile_manager)
+        tray_menu.addAction(profile_action)
         
         tray_menu.addSeparator()
         
@@ -561,10 +582,14 @@ class LauncherApp(QApplication):
         """アプリケーションを終了"""
         # ホットキーの登録を解除
         self.unregister_hotkey()
+        self.unregister_profile_hotkeys()
         
-        # 設定ウィンドウを閉じる
+        # ウィンドウを閉じる
         if self.settings_window:
             self.settings_window.close()
+            
+        if self.profile_window:
+            self.profile_window.close()
             
         # 全てのウィンドウを閉じる
         for group_icon in self.group_icons:
@@ -715,7 +740,7 @@ class LauncherApp(QApplication):
             
             if success:
                 # イベントフィルターを設定
-                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility)
+                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey)
                 self.installNativeEventFilter(self.hotkey_filter)
                 print(f"RegisterHotKey成功: modifiers={modifiers}, vk_code={vk_code}")
                 return True
@@ -778,6 +803,138 @@ class LauncherApp(QApplication):
             print(f"表示切り替えエラー: {e}")
             import traceback
             traceback.print_exc()
+            
+    def show_profile_manager(self):
+        """プロファイル管理ウィンドウを表示"""
+        try:
+            if self.profile_window is None:
+                self.profile_window = ProfileWindow(self.profile_manager, self.settings_manager)
+                self.profile_window.profile_switched.connect(self.on_profile_switched)
+                
+            self.profile_window.show()
+            self.profile_window.raise_()
+            self.profile_window.activateWindow()
+            
+        except Exception as e:
+            print(f"プロファイル管理ウィンドウ表示エラー: {e}")
+            QMessageBox.critical(None, "エラー", f"プロファイル管理ウィンドウの表示中にエラーが発生しました:\n{str(e)}")
+            
+    def on_profile_switched(self, profile_name):
+        """プロファイル切り替え時の処理"""
+        try:
+            print(f"プロファイル切り替え: {profile_name}")
+            
+            # 既存のグループアイコンを全て削除
+            for group_icon in self.group_icons[:]:  # コピーを作成してイテレート
+                group_icon.close()
+                if group_icon in self.item_list_windows:
+                    self.item_list_windows[group_icon].close()
+                    del self.item_list_windows[group_icon]
+            
+            self.group_icons.clear()
+            
+            # 新しいプロファイルのグループを読み込み
+            self.load_groups()
+            
+            # 外観設定を再適用
+            self.apply_initial_settings()
+            
+            print(f"プロファイル切り替え完了: {profile_name}")
+            
+        except Exception as e:
+            print(f"プロファイル切り替え処理エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            
+    def switch_profile_by_hotkey(self, profile_index):
+        """ホットキーによるプロファイル切り替え"""
+        try:
+            # プロファイル一覧を取得
+            profiles = self.profile_manager.get_profile_list()
+            
+            if 0 <= profile_index < len(profiles):
+                profile_name = profiles[profile_index]['name']
+                current_profile = self.profile_manager.get_current_profile_name()
+                
+                # 現在のプロファイルと同じ場合はスキップ
+                if profile_name == current_profile:
+                    print(f"既に '{profile_name}' を使用中です")
+                    return
+                    
+                print(f"ホットキーでプロファイル切り替え: F{profile_index + 1} -> {profile_name}")
+                
+                # プロファイルを切り替え
+                success, message = self.profile_manager.switch_to_profile(profile_name)
+                
+                if success:
+                    self.on_profile_switched(profile_name)
+                    # システムトレイに通知（オプション）
+                    if hasattr(self, 'tray_icon'):
+                        self.tray_icon.showMessage(
+                            "プロファイル切り替え",
+                            f"'{profile_name}' に切り替えました",
+                            QSystemTrayIcon.MessageIcon.Information,
+                            2000
+                        )
+                else:
+                    print(f"プロファイル切り替え失敗: {message}")
+                    
+            else:
+                print(f"プロファイルインデックス {profile_index} は範囲外です (利用可能: 0-{len(profiles)-1})")
+                
+        except Exception as e:
+            print(f"ホットキープロファイル切り替えエラー: {e}")
+            import traceback
+            traceback.print_exc()
+            
+    def setup_profile_hotkeys(self):
+        """プロファイル切り替え用ホットキーを設定"""
+        try:
+            # 既存のプロファイルホットキーを削除
+            self.unregister_profile_hotkeys()
+            
+            # プロファイル一覧を取得
+            profiles = self.profile_manager.get_profile_list()
+            
+            user32 = ctypes.windll.user32
+            
+            # F1-F12に対応する仮想キーコード
+            f_keys = [0x70 + i for i in range(12)]  # VK_F1 = 0x70, VK_F12 = 0x7B
+            
+            # 最大12個のプロファイルをF1-F12に割り当て
+            for i in range(min(len(profiles), 12)):
+                hotkey_id = PROFILE_HOTKEY_START_ID + i
+                modifiers = MOD_CONTROL | MOD_SHIFT
+                vk_code = f_keys[i]
+                
+                success = user32.RegisterHotKey(0, hotkey_id, modifiers, vk_code)
+                if success:
+                    self.profile_hotkeys[hotkey_id] = profiles[i]['name']
+                    print(f"プロファイルホットキー登録成功: Ctrl+Shift+F{i+1} -> {profiles[i]['name']}")
+                else:
+                    error = ctypes.windll.kernel32.GetLastError()
+                    print(f"プロファイルホットキー登録失敗 F{i+1}: エラーコード {error}")
+                    
+            print(f"プロファイルホットキー設定完了: {len(self.profile_hotkeys)}個")
+            
+        except Exception as e:
+            print(f"プロファイルホットキー設定エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            
+    def unregister_profile_hotkeys(self):
+        """プロファイル切り替え用ホットキーの登録を解除"""
+        try:
+            user32 = ctypes.windll.user32
+            
+            for hotkey_id in self.profile_hotkeys.keys():
+                user32.UnregisterHotKey(0, hotkey_id)
+                
+            self.profile_hotkeys.clear()
+            print("プロファイルホットキー登録解除完了")
+            
+        except Exception as e:
+            print(f"プロファイルホットキー登録解除エラー: {e}")
 
 
 def main():
