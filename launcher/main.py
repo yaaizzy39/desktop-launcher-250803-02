@@ -900,14 +900,14 @@ class LauncherApp(QApplication):
             
             if success:
                 self.on_profile_switched(profile_name)
-                # システムトレイに通知（使用されたホットキーも表示）
-                if hasattr(self, 'tray_icon'):
-                    self.tray_icon.showMessage(
-                        "プロファイル切り替え",
-                        f"[{hotkey_string}] '{profile_name}' に切り替えました",
-                        QSystemTrayIcon.MessageIcon.Information,
-                        1500
-                    )
+                # システムトレイ通知を無効化
+                # if hasattr(self, 'tray_icon'):
+                #     self.tray_icon.showMessage(
+                #         "プロファイル切り替え",
+                #         f"[{hotkey_string}] '{profile_name}' に切り替えました",
+                #         QSystemTrayIcon.MessageIcon.Information,
+                #         1500
+                #     )
             else:
                 print(f"プロファイル切り替え失敗: {message}")
                 
@@ -942,6 +942,10 @@ class LauncherApp(QApplication):
                 if not profile_info or not profile_info.get('hotkey'):
                     print(f"プロファイル '{profile['name']}' にはホットキーが設定されていません")
                     continue
+                else:
+                    # ホットキー情報がある場合のみ詳細ログ
+                    hotkey_data = profile_info.get('hotkey', {})
+                    print(f"プロファイル '{profile['name']}' のホットキー: {hotkey_data.get('hotkey_string', 'N/A')}")
                     
                 hotkey_info = profile_info['hotkey']
                 if not hotkey_info or 'hotkey_string' not in hotkey_info:
