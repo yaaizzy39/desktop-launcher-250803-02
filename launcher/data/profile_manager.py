@@ -50,15 +50,25 @@ class ProfileManager:
             # 現在のグループデータを取得
             current_groups = self.data_manager.load_groups()
             
-            # プロファイルデータを作成
+            # 既存のプロファイルデータがある場合は、既存の情報を保持
+            profile_file = os.path.join(profile_dir, "profile.json")
+            existing_profile_data = {}
+            if os.path.exists(profile_file):
+                try:
+                    with open(profile_file, 'r', encoding='utf-8') as f:
+                        existing_profile_data = json.load(f)
+                except Exception as e:
+                    print(f"既存のプロファイルデータ読み込みエラー: {e}")
+            
+            # プロファイルデータを作成（既存データを保持）
             profile_data = {
                 'name': profile_name,
-                'description': description,
-                'created': datetime.now().isoformat(),
+                'description': description if description else existing_profile_data.get('description', ''),
+                'created': existing_profile_data.get('created', datetime.now().isoformat()),
                 'updated': datetime.now().isoformat(),
                 'version': '1.0',
                 'groups': current_groups,
-                'hotkey': hotkey_info  # ホットキー情報を追加
+                'hotkey': hotkey_info if hotkey_info is not None else existing_profile_data.get('hotkey')  # 既存のホットキー情報を保持
             }
             
             # プロファイルファイルに保存

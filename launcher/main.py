@@ -626,6 +626,9 @@ class LauncherApp(QApplication):
             # ホットキーの登録を解除
             self.unregister_hotkey()
             
+            # プロファイルホットキーの登録も解除
+            self.unregister_profile_hotkeys()
+            
             # 設定ウィンドウを閉じる
             if self.settings_window:
                 self.settings_window.close()
@@ -649,22 +652,24 @@ class LauncherApp(QApplication):
             print(f"実行引数: {sys.argv}")
             print(f"frozen状態: {getattr(sys, 'frozen', False)}")
             
-            # 実行環境に応じて再起動方法を決定
+            # 実行環境に応じて再起動コマンドを決定
             if getattr(sys, 'frozen', False):
                 # PyInstallerでコンパイルされた実行ファイルの場合
                 cmd = [script_path] + sys.argv[1:]
                 print(f"実行コマンド（frozen）: {cmd}")
-                subprocess.Popen(cmd, cwd=os.getcwd())
             else:
                 # 通常のPythonスクリプトの場合
                 cmd = [python_exe, script_path] + sys.argv[1:]
                 print(f"実行コマンド（script）: {cmd}")
+            
+            # 少し待機してから新しいプロセスを開始（ホットキー解除完了を待つ）
+            def start_new_process():
                 subprocess.Popen(cmd, cwd=os.getcwd())
+                print("新しいプロセスを開始しました。現在のプロセスを終了します。")
+                # さらに待機してから終了
+                QTimer.singleShot(1000, self.quit)
             
-            print("新しいプロセスを開始しました。現在のプロセスを終了します。")
-            
-            # 少し待機してから終了
-            QTimer.singleShot(500, self.quit)
+            QTimer.singleShot(500, start_new_process)
             
         except Exception as e:
             print(f"再起動エラー: {e}")
