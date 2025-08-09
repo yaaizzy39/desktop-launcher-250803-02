@@ -90,8 +90,18 @@ class HotkeyTab(QWidget):
         help_label = QLabel("アイコンの表示/非表示を切り替えるホットキーを設定します")
         help_label.setStyleSheet("color: #666; font-size: 11px;")
         
+        # 最前面表示切り替えホットキー
+        self.always_on_top_hotkey = QKeySequenceEdit()
+        self.always_on_top_hotkey.keySequenceChanged.connect(self.settings_changed.emit)
+        
+        # 最前面表示の説明ラベル
+        always_on_top_help_label = QLabel("最前面表示のON/OFFを切り替えるホットキーを設定します")
+        always_on_top_help_label.setStyleSheet("color: #666; font-size: 11px;")
+        
         hotkey_layout.addRow("表示/非表示切り替え:", self.toggle_hotkey)
         hotkey_layout.addRow("", help_label)
+        hotkey_layout.addRow("最前面表示切り替え:", self.always_on_top_hotkey)
+        hotkey_layout.addRow("", always_on_top_help_label)
         
         hotkey_group.setLayout(hotkey_layout)
         
@@ -101,10 +111,17 @@ class HotkeyTab(QWidget):
         
         recommended_text = QLabel("""
 推奨されるホットキーの組み合わせ：
+
+【表示/非表示切り替え】
 • Ctrl+Alt+L（Launcher）
 • Ctrl+Shift+D（Desktop）
 • Ctrl+Alt+H（Hide/Show）
 • Win+Shift+L
+
+【最前面表示切り替え】
+• Ctrl+Shift+A（Always on top）
+• Ctrl+Alt+T（Top）
+• Win+Shift+A
 
 他のアプリケーションと競合しないキーを選択してください。
         """)
@@ -129,10 +146,15 @@ class HotkeyTab(QWidget):
         hotkey_str = settings.get('toggle_visibility', 'Ctrl+Alt+L')
         self.toggle_hotkey.setKeySequence(QKeySequence(hotkey_str))
         
+        # 最前面表示切り替えホットキー設定
+        always_on_top_str = settings.get('toggle_always_on_top', 'Ctrl+Shift+A')
+        self.always_on_top_hotkey.setKeySequence(QKeySequence(always_on_top_str))
+        
     def get_settings(self):
         """現在の設定を取得"""
         return {
-            'toggle_visibility': self.toggle_hotkey.keySequence().toString()
+            'toggle_visibility': self.toggle_hotkey.keySequence().toString(),
+            'toggle_always_on_top': self.always_on_top_hotkey.keySequence().toString()
         }
 
 

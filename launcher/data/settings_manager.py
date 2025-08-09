@@ -36,7 +36,8 @@ class SettingsManager:
                 'launch_interval': 3
             },
             'hotkey': {
-                'toggle_visibility': 'Ctrl+Alt+L'
+                'toggle_visibility': 'Ctrl+Alt+L',
+                'toggle_always_on_top': 'Ctrl+Shift+A'
             },
             'advanced': {
                 'max_backups': 10

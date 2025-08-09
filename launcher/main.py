@@ -39,10 +39,11 @@ PROFILE_HOTKEY_START_ID = 100
 class GlobalHotkeyFilter(QAbstractNativeEventFilter):
     """グローバルホットキーのイベントフィルター"""
     
-    def __init__(self, toggle_callback, profile_callback, app_instance):
+    def __init__(self, toggle_callback, profile_callback, always_on_top_callback, app_instance):
         super().__init__()
         self.toggle_callback = toggle_callback
         self.profile_callback = profile_callback
+        self.always_on_top_callback = always_on_top_callback
         self.app_instance = app_instance
     
     def nativeEventFilter(self, eventType, message):
@@ -55,6 +56,10 @@ class GlobalHotkeyFilter(QAbstractNativeEventFilter):
                 if hotkey_id == 1:  # ホットキーID 1 (表示切り替え)
                     print(f"[DEBUG] 表示切り替えホットキー実行")
                     self.toggle_callback()
+                    return True, 0
+                elif hotkey_id == 2:  # ホットキーID 2 (最前面表示切り替え)
+                    print(f"[DEBUG] 最前面表示切り替えホットキー実行")
+                    self.always_on_top_callback()
                     return True, 0
                 elif hotkey_id in self.app_instance.profile_hotkeys:  # 登録されたプロファイルホットキー
                     print(f"[DEBUG] プロファイル切り替えホットキー実行: ID={hotkey_id}")
@@ -90,6 +95,7 @@ class LauncherApp(QApplication):
         self.hotkey_id = 1  # グローバルホットキーID
         self.hotkey_filter = None  # ホットキーフィルター
         self.profile_hotkeys = {}  # プロファイル切り替え用ホットキー
+        self.always_on_top_hotkey_id = 2  # 最前面表示切り替え用ホットキーID
         
         # システムトレイ設定
         self.setup_system_tray()
@@ -105,6 +111,9 @@ class LauncherApp(QApplication):
         
         # ホットキーを設定
         self.setup_hotkey()
+        
+        # 最前面表示切り替えホットキーを設定
+        self.setup_always_on_top_hotkey()
         
         # プロファイルホットキーを設定
         self.setup_profile_hotkeys()
@@ -515,6 +524,7 @@ class LauncherApp(QApplication):
             if hotkey:
                 print(f"ホットキー設定を適用中: {hotkey}")
                 self.setup_hotkey()  # ホットキーを再設定
+                self.setup_always_on_top_hotkey()  # 最前面表示ホットキーも再設定
             
             # その他の設定適用処理をここに追加
             print("設定が適用されました")
@@ -592,6 +602,7 @@ class LauncherApp(QApplication):
         """アプリケーションを終了"""
         # ホットキーの登録を解除
         self.unregister_hotkey()
+        self.unregister_always_on_top_hotkey()
         self.unregister_profile_hotkeys()
         
         # ウィンドウを閉じる
@@ -625,6 +636,7 @@ class LauncherApp(QApplication):
             
             # ホットキーの登録を解除
             self.unregister_hotkey()
+            self.unregister_always_on_top_hotkey()
             
             # プロファイルホットキーの登録も解除
             self.unregister_profile_hotkeys()
@@ -768,7 +780,7 @@ class LauncherApp(QApplication):
             
             if success:
                 # イベントフィルターを設定
-                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey, self)
+                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey, self.toggle_always_on_top, self)
                 self.installNativeEventFilter(self.hotkey_filter)
                 print(f"RegisterHotKey成功: modifiers={modifiers}, vk_code={vk_code}")
                 return True
@@ -1028,6 +1040,99 @@ class LauncherApp(QApplication):
             
         except Exception as e:
             print(f"プロファイルホットキー登録解除エラー: {e}")
+
+    def setup_always_on_top_hotkey(self):
+        """最前面表示切り替えホットキーを設定"""
+        try:
+            # 既存の最前面表示ホットキーを削除
+            self.unregister_always_on_top_hotkey()
+            
+            # ホットキー設定を取得
+            hotkey_settings = self.settings_manager.get_hotkey_settings()
+            hotkey_str = hotkey_settings.get('toggle_always_on_top', 'Ctrl+Shift+A')
+            print(f"最前面表示切り替えホットキー設定取得: {hotkey_str}")
+            
+            # ホットキー文字列を解析
+            modifiers, vk_code = self.parse_hotkey_string(hotkey_str)
+            if modifiers is not None and vk_code is not None:
+                # グローバルホットキーを登録
+                success = self.register_always_on_top_hotkey(modifiers, vk_code)
+                if success:
+                    print(f"最前面表示切り替えホットキー登録成功: {hotkey_str}")
+                else:
+                    print(f"最前面表示切り替えホットキー登録失敗: {hotkey_str}")
+            else:
+                print(f"最前面表示切り替えホットキー解析失敗: {hotkey_str}")
+                
+        except Exception as e:
+            print(f"最前面表示切り替えホットキー設定エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def register_always_on_top_hotkey(self, modifiers, vk_code):
+        """最前面表示切り替えホットキーを登録"""
+        try:
+            # Windows APIでグローバルホットキーを登録
+            user32 = ctypes.windll.user32
+            success = user32.RegisterHotKey(0, self.always_on_top_hotkey_id, modifiers, vk_code)
+            
+            if success:
+                print(f"最前面表示切り替えホットキー登録成功: modifiers={modifiers}, vk_code={vk_code}")
+                return True
+            else:
+                error = ctypes.windll.kernel32.GetLastError()
+                print(f"最前面表示切り替えホットキー登録失敗. エラーコード: {error}")
+                return False
+                
+        except Exception as e:
+            print(f"最前面表示切り替えホットキー登録エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def unregister_always_on_top_hotkey(self):
+        """最前面表示切り替えホットキーの登録を解除"""
+        try:
+            # Windows APIでホットキーの登録を解除
+            user32 = ctypes.windll.user32
+            user32.UnregisterHotKey(0, self.always_on_top_hotkey_id)
+            print("最前面表示切り替えホットキー登録解除")
+            
+        except Exception as e:
+            print(f"最前面表示切り替えホットキー登録解除エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def toggle_always_on_top(self):
+        """最前面表示の切り替え"""
+        try:
+            print("最前面表示切り替えが呼び出されました")
+            
+            # 現在の設定を取得
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            current_state = appearance_settings.get('always_on_top', True)
+            new_state = not current_state
+            
+            print(f"最前面表示を {'ON' if new_state else 'OFF'} に切り替え")
+            
+            # 設定を更新
+            appearance_settings['always_on_top'] = new_state
+            self.settings_manager.save_appearance_settings(appearance_settings)
+            
+            # 全てのグループアイコンに設定を適用
+            for group_icon in self.group_icons:
+                group_icon.apply_appearance_settings(appearance_settings)
+                
+            # 全てのリストウィンドウに設定を適用
+            for window in self.item_list_windows.values():
+                window.apply_appearance_settings()
+            
+            print(f"最前面表示設定: {'ON' if new_state else 'OFF'}")
+            
+        except Exception as e:
+            print(f"最前面表示切り替えエラー: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 def main():
