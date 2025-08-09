@@ -856,13 +856,24 @@ class GroupIcon(QWidget):
                     from ctypes import wintypes
                     hwnd = int(self.winId())
                     if always_on_top:
-                        # HWND_TOPMOST (-1)
+                        # HWND_TOPMOST (-1) - 最前面に設定
                         ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)
                         print(f"  Windows API: TOPMOST設定")
                     else:
-                        # HWND_NOTOPMOST (-2)
+                        # HWND_NOTOPMOST (-2) - 通常ウィンドウに設定
                         ctypes.windll.user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)
                         print(f"  Windows API: NOTOPMOST設定")
+                        
+                        # より強制的な背面移動処理
+                        # 1. まずウィンドウを最背面に移動
+                        ctypes.windll.user32.SetWindowPos(hwnd, 1, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_BOTTOM (1)
+                        
+                        # 2. ウィンドウを非アクティブ化
+                        SWP_NOACTIVATE = 0x0010
+                        ctypes.windll.user32.SetWindowPos(hwnd, 1, 0, 0, 0, 0, 0x0001 | 0x0002 | SWP_NOACTIVATE)
+                        
+                        print(f"  Windows API: BOTTOM設定（背面に強制移動）")
+                        
                 except Exception as e:
                     print(f"  Windows API設定エラー: {e}")
                 

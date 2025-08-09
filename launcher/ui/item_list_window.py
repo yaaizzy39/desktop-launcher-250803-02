@@ -1317,13 +1317,23 @@ class ItemListWindow(QWidget):
                     from ctypes import wintypes
                     hwnd = int(self.winId())
                     if always_on_top:
-                        # HWND_TOPMOST (-1)
+                        # HWND_TOPMOST (-1) - 最前面に設定
                         ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)
                         print(f"  リストウィンドウ Windows API: TOPMOST設定")
                     else:
-                        # HWND_NOTOPMOST (-2)
+                        # HWND_NOTOPMOST (-2) - 通常ウィンドウに設定
                         ctypes.windll.user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)
                         print(f"  リストウィンドウ Windows API: NOTOPMOST設定")
+                        
+                        # 背面に移動させるために、すべてのウィンドウの後ろに配置
+                        ctypes.windll.user32.SetWindowPos(hwnd, 1, 0, 0, 0, 0, 0x0001 | 0x0002)  # HWND_BOTTOM (1)
+                        
+                        # ウィンドウを非アクティブ化
+                        SWP_NOACTIVATE = 0x0010
+                        ctypes.windll.user32.SetWindowPos(hwnd, 1, 0, 0, 0, 0, 0x0001 | 0x0002 | SWP_NOACTIVATE)
+                        
+                        print(f"  リストウィンドウ Windows API: BOTTOM設定（背面に強制移動）")
+                        
                 except Exception as e:
                     print(f"  リストウィンドウ Windows API設定エラー: {e}")
                 

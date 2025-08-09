@@ -1149,6 +1149,55 @@ class LauncherApp(QApplication):
                 print(f"リストウィンドウ {i+1} に設定を適用中...")
                 window.apply_appearance_settings()
             
+            # 背面に移動する場合は、全ウィンドウ処理完了後にフォーカス操作
+            if not new_state:  # 最前面をOFFにする場合
+                try:
+                    print("=== 背面移動の最終処理を実行 ===")
+                    import ctypes
+                    
+                    # 他のアプリケーションウィンドウを前面に持ってくる
+                    # まず、現在のフォアグラウンドウィンドウ以外で最も上にあるウィンドウを探す
+                    def enum_windows_proc(hwnd, lparam):
+                        if ctypes.windll.user32.IsWindowVisible(hwnd) and ctypes.windll.user32.IsWindow(hwnd):
+                            # アプリのウィンドウでない場合
+                            is_our_window = False
+                            for group_icon in self.group_icons:
+                                try:
+                                    if int(group_icon.winId()) == hwnd:
+                                        is_our_window = True
+                                        break
+                                except:
+                                    pass
+                            
+                            if not is_our_window:
+                                # ウィンドウクラス名を確認
+                                class_name = ctypes.create_unicode_buffer(256)
+                                ctypes.windll.user32.GetClassNameW(hwnd, class_name, 256)
+                                
+                                # デスクトップやシェルウィンドウは除外
+                                excluded_classes = ['Progman', 'WorkerW', 'Shell_TrayWnd']
+                                if class_name.value not in excluded_classes:
+                                    try:
+                                        # そのウィンドウを前面に持ってくる
+                                        ctypes.windll.user32.SetForegroundWindow(hwnd)
+                                        print(f"他のアプリケーションを前面に移動: クラス={class_name.value}")
+                                        return False  # 最初の有効なウィンドウで停止
+                                    except:
+                                        pass
+                        return True
+                    
+                    # ウィンドウ列挙用コールバック
+                    EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+                    enum_callback = EnumWindowsProc(enum_windows_proc)
+                    ctypes.windll.user32.EnumWindows(enum_callback, 0)
+                    
+                    print("=== 背面移動の最終処理完了 ===")
+                    
+                except Exception as e:
+                    print(f"背面移動最終処理エラー: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
             print(f"=== 最前面表示切り替え完了: {'ON' if new_state else 'OFF'} ===")
             
             # システムトレイ通知（オプション）
