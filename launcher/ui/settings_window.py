@@ -252,7 +252,7 @@ class AppearanceTab(QWidget):
         # リスト幅設定
         list_width_layout = QHBoxLayout()
         self.list_width_spin = QSpinBox()
-        self.list_width_spin.setMinimum(200)
+        self.list_width_spin.setMinimum(100)
         self.list_width_spin.setMaximum(600)
         self.list_width_spin.setSuffix("px")
         self.list_width_spin.valueChanged.connect(self.settings_changed.emit)
