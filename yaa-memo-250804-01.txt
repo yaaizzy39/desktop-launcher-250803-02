@@ -15,10 +15,15 @@ distフォルダ内の実行ファイルが作成される。
 たぶん、jupyterかなんかがインストールされていてその環境のPythonでビルドされる場合みたいだが、ビルド後のアプリの起動がエラーになるとき、
 標準Python環境でPyInstallerを実行
 
-プロジェクトディレクトリに移動
-  "C:\Users\yasuy\AppData\Local\Programs\Python\Python310\python.exe" -m PyInstaller main.spec --clean
 
-  ーーーーーーーー
-  ARMTのゲーミングPCでビルドしようとしたらエラーがでて、下記なら成功した
-  python -m PyInstaller main.spec
-  ーーーーーーーー
+【自宅PCの場合】
+自宅PCで普通にビルドするとエラーなしで終わるが、アプリ起動でえらーが出るので、下記なら成功する。
+Powershellでプロジェクトディレクトリに移動
+& "C:\Users\yasuy\AppData\Local\Programs\Python\Python310\python.exe" -m PyInstaller main.spec --clean
+
+【会社ゲーミングPCの場合】
+ーーーーーーーー
+ARMTのゲーミングPCでビルドしようとしたらエラーがでて、下記なら成功した
+Powershellでプロジェクトディレクトリに移動
+python -m PyInstaller main.spec
+ーーーーーーーー
