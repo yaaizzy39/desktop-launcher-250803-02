@@ -528,6 +528,7 @@ class LauncherApp(QApplication):
                 # 対応するリストウィンドウがあれば設定を適用
                 if group_icon in self.item_list_windows:
                     self.item_list_windows[group_icon].apply_appearance_settings()
+                    self.item_list_windows[group_icon].update_list_width()
                 
             # 動作設定を適用
             behavior = settings.get('behavior', {})

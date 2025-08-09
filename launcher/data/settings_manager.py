@@ -28,7 +28,8 @@ class SettingsManager:
                 'icon_color': '#6496ff',
                 'always_on_top': True,
                 'show_group_names': True,
-                'show_file_paths': True
+                'show_file_paths': True,
+                'list_width': 300
             },
             'behavior': {
                 'startup_with_windows': False,

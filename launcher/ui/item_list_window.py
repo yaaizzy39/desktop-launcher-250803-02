@@ -932,6 +932,13 @@ class ItemListWindow(QWidget):
         # グループアイコンの変更を監視
         self.group_icon.items_changed.connect(self.refresh_items)
         
+    def update_list_width(self):
+        """リスト幅を設定に基づいて更新"""
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            list_width = appearance_settings.get('list_width', 300)
+            self.setFixedWidth(list_width)
+        
     def setup_window(self):
         """ウィンドウ設定"""
         # 基本フラグ
@@ -978,7 +985,11 @@ class ItemListWindow(QWidget):
     def setup_ui(self):
         """UI設定"""
         # 初期サイズを設定（後で動的に調整される）
-        self.setFixedWidth(300)  # 幅は固定
+        list_width = 300  # デフォルト値
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            list_width = appearance_settings.get('list_width', 300)
+        self.setFixedWidth(list_width)  # 設定から読み込んだ幅を適用
         self.min_height = 120    # 最小高さ（ヘッダー + 余白）
         self.max_height = self.calculate_max_height()  # 最大高さ（画面高さに基づく）
         self.item_height = 42    # アイテム1個あたりの高さ（アイテム高さ40px + 余白2px）

@@ -245,6 +245,17 @@ class AppearanceTab(QWidget):
         self.show_file_paths.stateChanged.connect(self.settings_changed.emit)
         window_layout.addRow(self.show_file_paths)
         
+        # リスト幅設定
+        list_width_layout = QHBoxLayout()
+        self.list_width_spin = QSpinBox()
+        self.list_width_spin.setMinimum(200)
+        self.list_width_spin.setMaximum(600)
+        self.list_width_spin.setSuffix("px")
+        self.list_width_spin.valueChanged.connect(self.settings_changed.emit)
+        list_width_layout.addWidget(self.list_width_spin)
+        list_width_layout.addStretch()
+        window_layout.addRow("リスト幅:", list_width_layout)
+        
         window_group.setLayout(window_layout)
         layout.addWidget(window_group)
         
@@ -303,6 +314,7 @@ class AppearanceTab(QWidget):
         self.always_on_top.setChecked(settings.get('always_on_top', True))
         self.show_group_names.setChecked(settings.get('show_group_names', True))
         self.show_file_paths.setChecked(settings.get('show_file_paths', True))
+        self.list_width_spin.setValue(settings.get('list_width', 300))
         
     def get_settings(self):
         """現在の設定を取得"""
@@ -312,7 +324,8 @@ class AppearanceTab(QWidget):
             # 'icon_color': アイコン色機能を削除
             'always_on_top': self.always_on_top.isChecked(),
             'show_group_names': self.show_group_names.isChecked(),
-            'show_file_paths': self.show_file_paths.isChecked()
+            'show_file_paths': self.show_file_paths.isChecked(),
+            'list_width': self.list_width_spin.value()
         }
 
 
