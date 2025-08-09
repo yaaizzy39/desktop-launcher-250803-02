@@ -37,7 +37,8 @@ class SettingsManager:
             },
             'hotkey': {
                 'toggle_visibility': 'Ctrl+Shift+Z',
-                'toggle_always_on_top': 'Ctrl+Shift+A'
+                'toggle_always_on_top': 'Ctrl+Shift+A',
+                'toggle_desktop_icons': 'Ctrl+Shift+F12'
             },
             'advanced': {
                 'max_backups': 10

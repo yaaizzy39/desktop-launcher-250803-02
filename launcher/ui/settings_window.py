@@ -98,10 +98,20 @@ class HotkeyTab(QWidget):
         always_on_top_help_label = QLabel("最前面表示のON/OFFを切り替えるホットキーを設定します")
         always_on_top_help_label.setStyleSheet("color: #666; font-size: 11px;")
         
+        # デスクトップアイコン切り替えホットキー
+        self.desktop_icons_hotkey = QKeySequenceEdit()
+        self.desktop_icons_hotkey.keySequenceChanged.connect(self.settings_changed.emit)
+        
+        # デスクトップアイコンの説明ラベル
+        desktop_icons_help_label = QLabel("Windowsデスクトップアイコンの表示/非表示を切り替えるホットキーを設定します")
+        desktop_icons_help_label.setStyleSheet("color: #666; font-size: 11px;")
+        
         hotkey_layout.addRow("表示/非表示切り替え:", self.toggle_hotkey)
         hotkey_layout.addRow("", help_label)
         hotkey_layout.addRow("最前面表示切り替え:", self.always_on_top_hotkey)
         hotkey_layout.addRow("", always_on_top_help_label)
+        hotkey_layout.addRow("デスクトップアイコン切り替え:", self.desktop_icons_hotkey)
+        hotkey_layout.addRow("", desktop_icons_help_label)
         
         hotkey_group.setLayout(hotkey_layout)
         
@@ -123,6 +133,11 @@ class HotkeyTab(QWidget):
 • Ctrl+Shift+A（推奨、デフォルト）
 • Ctrl+Alt+T（Top）
 • Win+Shift+A
+
+【デスクトップアイコン切り替え】
+• Ctrl+Shift+F12（推奨、デフォルト）
+• Ctrl+Alt+D（Desktop）
+• Win+Shift+D
 
 他のアプリケーションと競合しないキーを選択してください。
         """)
@@ -151,11 +166,16 @@ class HotkeyTab(QWidget):
         always_on_top_str = settings.get('toggle_always_on_top', 'Ctrl+Shift+A')
         self.always_on_top_hotkey.setKeySequence(QKeySequence(always_on_top_str))
         
+        # デスクトップアイコン切り替えホットキー設定
+        desktop_icons_str = settings.get('toggle_desktop_icons', 'Ctrl+Shift+F12')
+        self.desktop_icons_hotkey.setKeySequence(QKeySequence(desktop_icons_str))
+        
     def get_settings(self):
         """現在の設定を取得"""
         return {
             'toggle_visibility': self.toggle_hotkey.keySequence().toString(),
-            'toggle_always_on_top': self.always_on_top_hotkey.keySequence().toString()
+            'toggle_always_on_top': self.always_on_top_hotkey.keySequence().toString(),
+            'toggle_desktop_icons': self.desktop_icons_hotkey.keySequence().toString()
         }
 
 

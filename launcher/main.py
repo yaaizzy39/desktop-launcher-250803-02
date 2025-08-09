@@ -25,6 +25,7 @@ from ui.profile_window import ProfileWindow
 from data.data_manager import DataManager
 from data.settings_manager import SettingsManager
 from data.profile_manager import ProfileManager
+from utils.desktop_icon_manager import DesktopIconManager
 
 # Windows API定数
 WM_HOTKEY = 0x0312
@@ -39,11 +40,12 @@ PROFILE_HOTKEY_START_ID = 100
 class GlobalHotkeyFilter(QAbstractNativeEventFilter):
     """グローバルホットキーのイベントフィルター"""
     
-    def __init__(self, toggle_callback, profile_callback, always_on_top_callback, app_instance):
+    def __init__(self, toggle_callback, profile_callback, always_on_top_callback, desktop_icons_callback, app_instance):
         super().__init__()
         self.toggle_callback = toggle_callback
         self.profile_callback = profile_callback
         self.always_on_top_callback = always_on_top_callback
+        self.desktop_icons_callback = desktop_icons_callback
         self.app_instance = app_instance
     
     def nativeEventFilter(self, eventType, message):
@@ -60,6 +62,10 @@ class GlobalHotkeyFilter(QAbstractNativeEventFilter):
                 elif hotkey_id == 2:  # ホットキーID 2 (最前面表示切り替え)
                     print(f"[DEBUG] 最前面表示切り替えホットキー実行")
                     self.always_on_top_callback()
+                    return True, 0
+                elif hotkey_id == 3:  # ホットキーID 3 (デスクトップアイコン切り替え)
+                    print(f"[DEBUG] デスクトップアイコン切り替えホットキー実行")
+                    self.desktop_icons_callback()
                     return True, 0
                 elif hotkey_id in self.app_instance.profile_hotkeys:  # 登録されたプロファイルホットキー
                     print(f"[DEBUG] プロファイル切り替えホットキー実行: ID={hotkey_id}")
@@ -96,6 +102,10 @@ class LauncherApp(QApplication):
         self.hotkey_filter = None  # ホットキーフィルター
         self.profile_hotkeys = {}  # プロファイル切り替え用ホットキー
         self.always_on_top_hotkey_id = 2  # 最前面表示切り替え用ホットキーID
+        self.desktop_icons_hotkey_id = 3  # デスクトップアイコン切り替え用ホットキーID
+        
+        # デスクトップアイコン管理（既存機能と独立）
+        self.desktop_icon_manager = None
         
         # システムトレイ設定
         self.setup_system_tray()
@@ -114,6 +124,9 @@ class LauncherApp(QApplication):
         
         # 最前面表示切り替えホットキーを設定
         self.setup_always_on_top_hotkey()
+        
+        # デスクトップアイコン切り替え機能を初期化（既存機能と独立）
+        self.initialize_desktop_icon_feature()
         
         # プロファイルホットキーを設定
         self.setup_profile_hotkeys()
@@ -525,6 +538,7 @@ class LauncherApp(QApplication):
                 print(f"ホットキー設定を適用中: {hotkey}")
                 self.setup_hotkey()  # ホットキーを再設定
                 self.setup_always_on_top_hotkey()  # 最前面表示ホットキーも再設定
+                self.setup_desktop_icons_hotkey()  # デスクトップアイコンホットキーも再設定
             
             # その他の設定適用処理をここに追加
             print("設定が適用されました")
@@ -603,6 +617,7 @@ class LauncherApp(QApplication):
         # ホットキーの登録を解除
         self.unregister_hotkey()
         self.unregister_always_on_top_hotkey()
+        self.unregister_desktop_icons_hotkey()
         self.unregister_profile_hotkeys()
         
         # ウィンドウを閉じる
@@ -637,6 +652,7 @@ class LauncherApp(QApplication):
             # ホットキーの登録を解除
             self.unregister_hotkey()
             self.unregister_always_on_top_hotkey()
+            self.unregister_desktop_icons_hotkey()
             
             # プロファイルホットキーの登録も解除
             self.unregister_profile_hotkeys()
@@ -780,7 +796,7 @@ class LauncherApp(QApplication):
             
             if success:
                 # イベントフィルターを設定
-                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey, self.toggle_always_on_top, self)
+                self.hotkey_filter = GlobalHotkeyFilter(self.toggle_icons_visibility, self.switch_profile_by_hotkey, self.toggle_always_on_top, self.toggle_desktop_icons, self)
                 self.installNativeEventFilter(self.hotkey_filter)
                 print(f"RegisterHotKey成功: modifiers={modifiers}, vk_code={vk_code}")
                 return True
@@ -1146,6 +1162,119 @@ class LauncherApp(QApplication):
             
         except Exception as e:
             print(f"最前面表示切り替えエラー: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def initialize_desktop_icon_feature(self):
+        """デスクトップアイコン切り替え機能を初期化（既存機能と独立）"""
+        try:
+            print("=== デスクトップアイコン機能初期化開始 ===")
+            
+            # DesktopIconManagerを初期化
+            self.desktop_icon_manager = DesktopIconManager()
+            
+            # デスクトップアイコン切り替えホットキーを設定
+            self.setup_desktop_icons_hotkey()
+            
+            print("=== デスクトップアイコン機能初期化完了 ===")
+            
+        except Exception as e:
+            print(f"デスクトップアイコン機能初期化エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            # エラーが発生しても既存機能に影響しないよう、None を設定
+            self.desktop_icon_manager = None
+    
+    def setup_desktop_icons_hotkey(self):
+        """デスクトップアイコン切り替えホットキーを設定"""
+        try:
+            # 既存のデスクトップアイコンホットキーを削除
+            self.unregister_desktop_icons_hotkey()
+            
+            # ホットキー設定を取得
+            hotkey_settings = self.settings_manager.get_hotkey_settings()
+            hotkey_str = hotkey_settings.get('toggle_desktop_icons', 'Ctrl+Shift+F12')
+            print(f"デスクトップアイコン切り替えホットキー設定取得: {hotkey_str}")
+            
+            # ホットキー文字列を解析
+            modifiers, vk_code = self.parse_hotkey_string(hotkey_str)
+            if modifiers is not None and vk_code is not None:
+                # グローバルホットキーを登録
+                success = self.register_desktop_icons_hotkey(modifiers, vk_code)
+                if success:
+                    print(f"デスクトップアイコン切り替えホットキー登録成功: {hotkey_str}")
+                else:
+                    print(f"デスクトップアイコン切り替えホットキー登録失敗: {hotkey_str}")
+            else:
+                print(f"デスクトップアイコン切り替えホットキー解析失敗: {hotkey_str}")
+                
+        except Exception as e:
+            print(f"デスクトップアイコン切り替えホットキー設定エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def register_desktop_icons_hotkey(self, modifiers, vk_code):
+        """デスクトップアイコン切り替えホットキーを登録"""
+        try:
+            # Windows APIでグローバルホットキーを登録
+            user32 = ctypes.windll.user32
+            success = user32.RegisterHotKey(0, self.desktop_icons_hotkey_id, modifiers, vk_code)
+            
+            if success:
+                print(f"デスクトップアイコン切り替えホットキー登録成功: modifiers={modifiers}, vk_code={vk_code}")
+                return True
+            else:
+                error = ctypes.windll.kernel32.GetLastError()
+                print(f"デスクトップアイコン切り替えホットキー登録失敗. エラーコード: {error}")
+                return False
+                
+        except Exception as e:
+            print(f"デスクトップアイコン切り替えホットキー登録エラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def unregister_desktop_icons_hotkey(self):
+        """デスクトップアイコン切り替えホットキーの登録を解除"""
+        try:
+            # Windows APIでホットキーの登録を解除
+            user32 = ctypes.windll.user32
+            user32.UnregisterHotKey(0, self.desktop_icons_hotkey_id)
+            print("デスクトップアイコン切り替えホットキー登録解除")
+            
+        except Exception as e:
+            print(f"デスクトップアイコン切り替えホットキー登録解除エラー: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def toggle_desktop_icons(self):
+        """デスクトップアイコンの切り替え（既存機能と完全独立）"""
+        try:
+            print("=== デスクトップアイコン切り替え開始 ===")
+            
+            if self.desktop_icon_manager is None:
+                print("エラー: デスクトップアイコン管理機能が初期化されていません")
+                return
+            
+            # デスクトップアイコン管理機能を使って切り替え
+            success = self.desktop_icon_manager.toggle_desktop_icons()
+            
+            if success:
+                # 状態に応じてシステムトレイ通知（オプション）
+                current_state = self.desktop_icon_manager.is_desktop_icons_visible()
+                if hasattr(self, 'tray_icon'):
+                    self.tray_icon.showMessage(
+                        "デスクトップアイコン切り替え",
+                        f"デスクトップアイコンを{'表示' if current_state else '非表示'}にしました",
+                        self.tray_icon.MessageIcon.Information,
+                        1000
+                    )
+                print(f"=== デスクトップアイコン切り替え完了: {'表示' if current_state else '非表示'} ===")
+            else:
+                print("=== デスクトップアイコン切り替え失敗 ===")
+                
+        except Exception as e:
+            print(f"デスクトップアイコン切り替えエラー: {e}")
             import traceback
             traceback.print_exc()
 
