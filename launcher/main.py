@@ -1106,28 +1106,43 @@ class LauncherApp(QApplication):
     def toggle_always_on_top(self):
         """最前面表示の切り替え"""
         try:
-            print("最前面表示切り替えが呼び出されました")
+            print("=== 最前面表示切り替え開始 ===")
             
             # 現在の設定を取得
             appearance_settings = self.settings_manager.get_appearance_settings()
             current_state = appearance_settings.get('always_on_top', True)
             new_state = not current_state
             
-            print(f"最前面表示を {'ON' if new_state else 'OFF'} に切り替え")
+            print(f"現在の状態: {'ON' if current_state else 'OFF'}")
+            print(f"新しい状態: {'ON' if new_state else 'OFF'}")
             
             # 設定を更新
             appearance_settings['always_on_top'] = new_state
-            self.settings_manager.save_appearance_settings(appearance_settings)
+            save_result = self.settings_manager.save_appearance_settings(appearance_settings)
+            print(f"設定保存結果: {'成功' if save_result else '失敗'}")
             
             # 全てのグループアイコンに設定を適用
-            for group_icon in self.group_icons:
+            print(f"グループアイコン数: {len(self.group_icons)}")
+            for i, group_icon in enumerate(self.group_icons):
+                print(f"グループアイコン {i+1} '{group_icon.name}' に設定を適用中...")
                 group_icon.apply_appearance_settings(appearance_settings)
                 
             # 全てのリストウィンドウに設定を適用
-            for window in self.item_list_windows.values():
+            print(f"リストウィンドウ数: {len(self.item_list_windows)}")
+            for i, window in enumerate(self.item_list_windows.values()):
+                print(f"リストウィンドウ {i+1} に設定を適用中...")
                 window.apply_appearance_settings()
             
-            print(f"最前面表示設定: {'ON' if new_state else 'OFF'}")
+            print(f"=== 最前面表示切り替え完了: {'ON' if new_state else 'OFF'} ===")
+            
+            # システムトレイ通知（オプション）
+            if hasattr(self, 'tray_icon'):
+                self.tray_icon.showMessage(
+                    "最前面表示設定",
+                    f"最前面表示を{'ON' if new_state else 'OFF'}にしました",
+                    self.tray_icon.MessageIcon.Information,
+                    1000
+                )
             
         except Exception as e:
             print(f"最前面表示切り替えエラー: {e}")

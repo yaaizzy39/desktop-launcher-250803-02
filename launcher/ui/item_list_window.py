@@ -1311,6 +1311,21 @@ class ItemListWindow(QWidget):
             self.setWindowFlags(flags)
             if was_visible:
                 self.show()
+                # Windows APIを使用して強制的に最前面/背面を設定
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+                    hwnd = int(self.winId())
+                    if always_on_top:
+                        # HWND_TOPMOST (-1)
+                        ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)
+                        print(f"  リストウィンドウ Windows API: TOPMOST設定")
+                    else:
+                        # HWND_NOTOPMOST (-2)
+                        ctypes.windll.user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)
+                        print(f"  リストウィンドウ Windows API: NOTOPMOST設定")
+                except Exception as e:
+                    print(f"  リストウィンドウ Windows API設定エラー: {e}")
                 
             print(f"リストウィンドウ最前面表示: {'ON' if always_on_top else 'OFF'}")
         

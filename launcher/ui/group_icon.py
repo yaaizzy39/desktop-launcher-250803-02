@@ -827,11 +827,48 @@ class GroupIcon(QWidget):
             # 常に最前面設定
             always_on_top = settings.get('always_on_top', True)
             flags = self.windowFlags()
+            old_has_stay_on_top = bool(flags & Qt.WindowType.WindowStaysOnTopHint)
+            
+            print(f"グループアイコン '{self.name}': 最前面設定 {'ON' if always_on_top else 'OFF'}")
+            print(f"  現在のフラグ状態: {'ON' if old_has_stay_on_top else 'OFF'}")
+            
             if always_on_top:
                 flags |= Qt.WindowType.WindowStaysOnTopHint
             else:
                 flags &= ~Qt.WindowType.WindowStaysOnTopHint
+            
+            new_has_stay_on_top = bool(flags & Qt.WindowType.WindowStaysOnTopHint)
+            print(f"  新しいフラグ状態: {'ON' if new_has_stay_on_top else 'OFF'}")
+            
+            # 可視状態を保存
+            was_visible = self.isVisible()
+            print(f"  表示状態: {'表示中' if was_visible else '非表示'}")
+            
+            # フラグを設定
             self.setWindowFlags(flags)
+            
+            # フラグ変更後は必ず再表示が必要
+            if was_visible:
+                self.show()
+                # Windows APIを使用して強制的に最前面/背面を設定
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+                    hwnd = int(self.winId())
+                    if always_on_top:
+                        # HWND_TOPMOST (-1)
+                        ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002)
+                        print(f"  Windows API: TOPMOST設定")
+                    else:
+                        # HWND_NOTOPMOST (-2)
+                        ctypes.windll.user32.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002)
+                        print(f"  Windows API: NOTOPMOST設定")
+                except Exception as e:
+                    print(f"  Windows API設定エラー: {e}")
+                
+                print(f"  再表示完了")
+            else:
+                print(f"  非表示のままスキップ")
             
             # 表示を更新（カスタムアイコンがあればそれを表示、なければ数字を表示）
             self.update_display()
@@ -841,8 +878,6 @@ class GroupIcon(QWidget):
             
             # テキストサイズを再調整（レイアウト変更後）
             QTimer.singleShot(10, self.adjust_text_size)
-            
-            self.show()  # フラグ変更後に再表示
             
         except Exception as e:
             print(f"外観設定適用エラー: {e}")
