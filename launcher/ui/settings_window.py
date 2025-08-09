@@ -113,13 +113,14 @@ class HotkeyTab(QWidget):
 推奨されるホットキーの組み合わせ：
 
 【表示/非表示切り替え】
+• Ctrl+Shift+Z（推奨、デフォルト）
 • Ctrl+Alt+L（Launcher）
 • Ctrl+Shift+D（Desktop）
 • Ctrl+Alt+H（Hide/Show）
 • Win+Shift+L
 
 【最前面表示切り替え】
-• Ctrl+Shift+A（Always on top）
+• Ctrl+Shift+A（推奨、デフォルト）
 • Ctrl+Alt+T（Top）
 • Win+Shift+A
 
@@ -143,7 +144,7 @@ class HotkeyTab(QWidget):
         settings = self.settings_manager.get_hotkey_settings()
         
         # ホットキー設定
-        hotkey_str = settings.get('toggle_visibility', 'Ctrl+Alt+L')
+        hotkey_str = settings.get('toggle_visibility', 'Ctrl+Shift+Z')
         self.toggle_hotkey.setKeySequence(QKeySequence(hotkey_str))
         
         # 最前面表示切り替えホットキー設定

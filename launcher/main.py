@@ -696,7 +696,7 @@ class LauncherApp(QApplication):
             
             # ホットキー設定を取得
             hotkey_settings = self.settings_manager.get_hotkey_settings()
-            hotkey_str = hotkey_settings.get('toggle_visibility', 'Ctrl+Alt+L')
+            hotkey_str = hotkey_settings.get('toggle_visibility', 'Ctrl+Shift+Z')
             print(f"ホットキー設定取得: {hotkey_str}")
             
             # ホットキー文字列を解析
