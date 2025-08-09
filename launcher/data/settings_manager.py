@@ -29,6 +29,7 @@ class SettingsManager:
                 'always_on_top': True,
                 'show_group_names': True,
                 'show_file_paths': True,
+                'show_app_names': True,
                 'list_width': 300
             },
             'behavior': {

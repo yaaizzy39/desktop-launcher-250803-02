@@ -82,10 +82,12 @@ class ItemWidget(QFrame):
                 
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # アイテム名
-        name_label = QLabel(self.item_info['name'])
-        name_label.setFont(QFont("Arial", 9))
-        name_label.setStyleSheet("color: #333; font-weight: bold;")
+        # アイテム名 - 設定に基づいて表示/非表示
+        self.name_label = None
+        if self.should_show_app_name():
+            self.name_label = QLabel(self.item_info['name'])
+            self.name_label.setFont(QFont("Arial", 9))
+            self.name_label.setStyleSheet("color: #333; font-weight: bold;")
         
         # パス（簡略表示）- 設定に基づいて表示/非表示
         self.path_label = None
@@ -103,7 +105,8 @@ class ItemWidget(QFrame):
         info_layout = QVBoxLayout()
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(0)
-        info_layout.addWidget(name_label)
+        if self.name_label:
+            info_layout.addWidget(self.name_label)
         if self.path_label:
             info_layout.addWidget(self.path_label)
         
@@ -135,6 +138,13 @@ class ItemWidget(QFrame):
         if self.settings_manager:
             appearance_settings = self.settings_manager.get_appearance_settings()
             return appearance_settings.get('show_file_paths', True)
+        return True  # デフォルトは表示
+        
+    def should_show_app_name(self):
+        """アプリ名を表示するかどうかを判定"""
+        if self.settings_manager:
+            appearance_settings = self.settings_manager.get_appearance_settings()
+            return appearance_settings.get('show_app_names', True)
         return True  # デフォルトは表示
         
     def _set_default_icon(self, icon_label):
@@ -938,6 +948,10 @@ class ItemListWindow(QWidget):
             appearance_settings = self.settings_manager.get_appearance_settings()
             list_width = appearance_settings.get('list_width', 300)
             self.setFixedWidth(list_width)
+            
+    def update_app_name_visibility(self):
+        """アプリ名表示を設定に基づいて更新"""
+        self.refresh_items()
         
     def setup_window(self):
         """ウィンドウ設定"""

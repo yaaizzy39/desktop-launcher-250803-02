@@ -245,6 +245,10 @@ class AppearanceTab(QWidget):
         self.show_file_paths.stateChanged.connect(self.settings_changed.emit)
         window_layout.addRow(self.show_file_paths)
         
+        self.show_app_names = QCheckBox("リスト内でアプリ名を表示")
+        self.show_app_names.stateChanged.connect(self.settings_changed.emit)
+        window_layout.addRow(self.show_app_names)
+        
         # リスト幅設定
         list_width_layout = QHBoxLayout()
         self.list_width_spin = QSpinBox()
@@ -314,6 +318,7 @@ class AppearanceTab(QWidget):
         self.always_on_top.setChecked(settings.get('always_on_top', True))
         self.show_group_names.setChecked(settings.get('show_group_names', True))
         self.show_file_paths.setChecked(settings.get('show_file_paths', True))
+        self.show_app_names.setChecked(settings.get('show_app_names', True))
         self.list_width_spin.setValue(settings.get('list_width', 300))
         
     def get_settings(self):
@@ -325,6 +330,7 @@ class AppearanceTab(QWidget):
             'always_on_top': self.always_on_top.isChecked(),
             'show_group_names': self.show_group_names.isChecked(),
             'show_file_paths': self.show_file_paths.isChecked(),
+            'show_app_names': self.show_app_names.isChecked(),
             'list_width': self.list_width_spin.value()
         }
 
